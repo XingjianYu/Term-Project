@@ -1,0 +1,399 @@
+import pygame
+from Ghost3 import Ghost
+from Ghost3 import Blinky
+from Ghost3 import Pinky
+from Ghost3 import Inky
+from Ghost3 import Clide
+
+# from Ghost import Ghost
+''' The class PygameGame  and class Game are cited from 
+    https://github.com/LBPeraza/Pygame-Asteroids
+    This framework is originally created by Lukas Peraza for 
+    15-112 F15 Pygame Optional Lecture, 11/11/15
+'''
+######################################################
+############ HELPER FUNCTIONS ########################
+######################################################
+
+def initBoard():
+    board=[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 3,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 3,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1,-1,-1, 0,-1,-1, 1,-1, 1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1,-1, 0, 0, 0,-1, 1, 1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 1,-1],
+           [-1, 3, 1,-1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,-1, 1, 3,-1],
+           [-1,-1, 1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1, 1,-1,-1],
+           [-1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]]
+    rows,cols,size,xMargin,yMargin=21,19,30,30,65
+    for row in range(rows):
+        for col in range(cols):
+            x = xMargin+col*size
+            y = yMargin+row*size
+            if board[row][col]<0:
+                board[row][col]=WallTile(x,y,board[row][col])
+            elif board[row][col]>=0:
+                board[row][col]=Tile(x,y,board[row][col])
+    return board
+
+def checkForWin(pacdots):
+    return len(pacdots)==0
+
+def notLegalMove(pacman,tiles):
+    collideTile=pygame.sprite.spritecollide(pacman,tiles,False)
+    for tile in collideTile:
+        if type(tile)==WallTile:
+            return True
+    return False
+
+def getButton(size,color):
+    button=pygame.Surface(size)
+    button.fill(color)
+    return button
+
+def getFont(size,text,color):
+    font=pygame.font.SysFont(None,size)
+    font=font.render(text,True,color)
+    return font
+
+######################################################
+############ CLASSES #################################
+######################################################
+
+class Pacdot(pygame.sprite.Sprite):
+
+    color=(255,255,0)
+
+    def __init__(self,x,y):
+        super().__init__()
+        self.x=x
+        self.y=y
+        self.image=pygame.Surface((4,4))
+        self.rect=(self.x-2,self.y-2,5,5)
+        self.image.fill(Pacdot.color)
+
+class Tile(pygame.sprite.Sprite):
+
+    def __init__(self,x,y,score):
+        # x,y being center coordinates
+        super().__init__()
+        self.x,self.y=x,y
+        self.size=30
+        self.score=score
+        self.baseColor=(0,0,0)
+        self.image=pygame.Surface((self.size,self.size))
+        self.image.fill(self.baseColor)
+        self.rect=(x-15,y-15,self.size,self.size)
+
+class WallTile(Tile):
+    def __init__(self,x,y,score):
+        super().__init__(x,y,score)
+        self.score=-1
+        self.rimColor=(0,0,255)
+        self.image.fill(self.rimColor)
+
+class Pacman(pygame.sprite.Sprite):
+
+    # CLASS ATTRIBUTES
+    image=pygame.image.load('Images/pacman.png')
+    image=pygame.transform.scale(image,(30,30))
+    dirDict={'left': [(-5,0),pygame.transform.flip(image,True,False)],
+            'right':[(5,0),image],
+            'up':[(0,-5),pygame.transform.rotate(image,90)],
+            'down':[(0,5),pygame.transform.rotate(image,-90)],
+            'stand':[(0,0)]}
+
+    def __init__(self,lives,row=15,col=9):
+        super().__init__()
+        self.row,self.col=row,col
+        # (x,y) is center
+        self.x=15+15+30*col
+        self.y=50+15+30*row
+        self.size=30
+        self.dir='left'
+        self.nextDir=self.dir
+        self.image=Pacman.dirDict[self.dir][1]
+        self.rect = pygame.Rect(15+self.col*self.size,30+self.row*self.size, 
+                                self.size,self.size)
+        self.score=0
+        self.frightening=False
+        self.frightenTime=0
+        self.energizer=1
+        self.lives=lives
+        self.dx,self.dy=0,0
+
+    def update(self,keysDown,tiles,board,ghosts):
+        if keysDown(pygame.K_UP):
+            self.nextDir='up'
+        elif keysDown(pygame.K_DOWN): 
+            self.nextDir='down'
+        elif keysDown(pygame.K_LEFT): 
+            self.nextDir='left'
+        elif keysDown(pygame.K_RIGHT): 
+            self.nextDir='right'    
+        self.move(tiles,board,ghosts)
+
+    def move(self,tiles,board,ghosts):
+        (self.dx,self.dy)=Pacman.dirDict[self.nextDir][0]
+        self.x+=self.dx
+        self.y+=self.dy
+        self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+        # if ran into wall, unmake move
+        if notLegalMove(self,tiles):
+            self.x-=self.dx
+            self.y-=self.dy
+            # try to move in previous dir
+            if self.nextDir!=self.dir:
+                self.dx,self.dy=Pacman.dirDict[self.dir][0]
+                self.x+=self.dx
+                self.y+=self.dy
+                self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+                # if no legal move, 
+                if notLegalMove(self,tiles):
+                    self.x-=self.dx
+                    self.y-=self.dy
+                    self.dx,self.dy=0,0
+                    self.dir='stand'
+                    self.nextDir='stand'
+            else:
+                self.dx,self.dy=0,0
+                self.dir='stand'
+                self.nextDir='stand'
+        else:
+            self.dir=self.nextDir
+            if self.nextDir!='stand':
+                self.image=Pacman.dirDict[self.nextDir][1]
+        (self.row,self.col)=((self.y-65)//30,(self.x-30)//30)
+        # Check if Pacman is ate energizer
+        if board[self.row][self.col].score>1 or self.frightening==True:
+            board[self.row][self.col].score=0
+            self.frighten(ghosts)
+        self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+       
+    def frighten(self,ghosts):
+        if self.frightenTime<(200/self.energizer):
+            self.frightening=True
+            self.frightenTime+=1
+            for ghost in ghosts:
+                ghost.frightened=True
+        else:
+            self.frightenTime=0
+            self.frightening=False
+            self.energizer+=1
+            for ghost in ghosts:
+                ghost.frightened=False
+
+class PygameGame(object):
+    def init(self):
+        pass
+
+    def mousePressed(self, x, y):
+        pass
+
+    def mouseReleased(self, x, y):
+        pass
+
+    def mouseMotion(self, x, y):
+        pass
+
+    def mouseDrag(self, x, y):
+        pass
+
+    def keyPressed(self, keyCode, modifier):
+        pass
+
+    def keyReleased(self, keyCode, modifier):
+        pass
+
+    def timerFired(self, dt):
+        pass
+
+    def redrawAll(self, screen):
+        pass
+
+    def isKeyPressed(self, key):
+        ''' return whether a specific key is being held '''
+        return self._keys.get(key, False)
+
+    def __init__(self, width=600, height=700, fps=50, title="Pacman"):
+        self.width = width
+        self.height = height
+        self.fps = fps
+        self.title = title
+        self.bgColor = (0, 0, 0)
+        self.digitBoard=initBoard()
+        pygame.init()
+
+    def run(self):
+        clock = pygame.time.Clock()
+        screen = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption(self.title)
+        self._keys = dict()
+        self.init()
+        self.playing = True
+        while self.playing:
+            time = clock.tick(self.fps)
+            self.timerFired(time)
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    self._keys[event.key] = True
+                    self.keyPressed(event.key, event.mod)
+                elif event.type == pygame.KEYUP:
+                    self._keys[event.key] = False
+                    self.keyReleased(event.key, event.mod)
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    self.mousePressed(*(event.pos))
+                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    self.mouseReleased(*(event.pos))
+                elif event.type == pygame.QUIT:
+                    self.playing = False
+            screen.fill(self.bgColor)
+            self.redrawAll(screen)
+            pygame.display.flip()
+        pygame.quit()
+
+class Game(PygameGame):
+
+    def init(self,pacmanLives=3,prev=None,board=None):
+        # if start of game, set mode to menu
+        if pacmanLives==3:
+            self.mode='menu'
+            self.gameOn=False
+        if board!=None:
+            self.board=board
+        else:
+            self.board=initBoard()
+        # init tiles
+        self.initTiles()
+        # init pacdots
+        self.initPacdots(prev) 
+        # init pacman
+        self.initPacman(pacmanLives)
+        # init ghosts
+        self.initGhosts()
+
+    def initPacman(self,pacmanLives):
+        self.pacmanGroup=pygame.sprite.Group()
+        self.pacman=Pacman(pacmanLives)
+        self.pacmanGroup.add(self.pacman)
+
+    def initTiles(self):
+        self.tileGroup=pygame.sprite.Group()
+        for row in range(len(self.board)):
+            for col in range(len(self.board[0])):
+                self.tileGroup.add(self.board[row][col])
+
+    def initPacdots(self,prev):
+        if prev==None:
+            self.pacdotGroup=pygame.sprite.Group()
+            for row in range(len(self.board)):
+                for col in range(len(self.board[0])):
+                    # The x,y coordinates should be centered
+                    if self.board[row][col].score>0:
+                        pacdot=Pacdot(self.board[row][col].x,
+                                      self.board[row][col].y)
+                        self.pacdotGroup.add(pacdot)
+        else:
+            self.pacdotGroup=prev
+        
+    def initGhosts(self):
+        self.ghostGroup=pygame.sprite.Group()
+        self.blinky=Blinky()
+        self.ghostGroup.add(self.blinky)
+        self.pinky=Pinky()
+        self.ghostGroup.add(self.pinky)
+        self.inky=Inky()
+        self.ghostGroup.add(self.inky)
+        self.clide=Clide()
+        self.ghostGroup.add(self.clide)
+    
+    def keyPressed(self, code, mod):
+        if code == pygame.K_ESCAPE:
+            self.mode='menu'
+
+    def mousePressed(self,x,y):
+        if self.mode=='menu':
+            if 200<=x<=400 and 410<=y<=490:
+                self.mode='game'
+                self.gameOn=True
+            elif 200<=x<=400 and 510<=y<=590:
+                self.mode='help'
+            elif 200<=x<=400 and 610<=y<=690:
+                self.playing=False
+
+    def playGame(self):
+        self.pacmanGroup.update(self.isKeyPressed,self.tileGroup,self.board,
+                                    self.ghostGroup)
+        # check eaten pacdots
+        eatenPacdot=pygame.sprite.spritecollide(self.pacman,
+                                                self.pacdotGroup,True)
+        self.ghostGroup.update(self.pacman,self.board)
+        # check for win
+        if checkForWin(self.pacdotGroup)==True:
+            self.gameOn=False
+        # check for loss
+        collideGhost=pygame.sprite.spritecollide(self.pacman,
+                                                 self.ghostGroup,False)
+        for ghost in collideGhost:
+            if self.pacman.frightening==True:
+                ghost.__init__()
+                ghost.frightened=False
+            else:
+                self.pacman.lives-=1
+                if self.pacman.lives==0:
+                    self.gameOn=False
+                else:
+                    self.init(self.pacman.lives,self.pacdotGroup,self.board)
+
+    def timerFired(self, dt):
+        if self.mode=='game':
+            if self.gameOn==True:
+                self.playGame()
+    
+    def redrawAll(self, screen):
+        if self.mode=='game':
+            self.redrawGame(screen)
+        if self.mode=='menu':
+            self.redrawMenu(screen)
+
+    def redrawMenu(self,screen):
+        playButton=getButton((200,80),(255,255,255))
+        playFont=getFont(60,'Play',(0,0,225))
+        screen.blit(playButton,(200,410))
+        screen.blit(playFont,(250,430))
+        helpButton=getButton((200,80),(255,255,255))
+        helpFont=getFont(60,'Help',(0,0,225))
+        screen.blit(helpButton,(200,510))
+        screen.blit(helpFont,(250,530))
+        quitButton=getButton((200,80),(255,255,255))
+        quitFont=getFont(60,'Quit',(0,0,225))
+        screen.blit(quitButton,(200,610))
+        screen.blit(quitFont,(250,630))
+
+    def redrawGame(self,screen):
+        self.tileGroup.draw(screen)
+        self.pacdotGroup.draw(screen)
+        self.pacmanGroup.draw(screen)
+        self.ghostGroup.draw(screen)
+        pygame.display.flip()
+
+        # Why is the text blinking???
+        if self.gameOn==False:
+            self.font=pygame.font.SysFont(None,60)
+            self.font=self.font.render('You lose!', True, (255,255,0))
+            screen.blit(self.font,(300,300))
+            pygame.display.flip()
+     
+Game(600,700).run() 
