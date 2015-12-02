@@ -45,6 +45,13 @@ class Ghost(pygame.sprite.Sprite):
         (self.row,self.col)=((self.y-65)//30,(self.x-30)//30)
         if (self.row,self.col) not in Ghost.cell:
             self.outOfCell=True
+        self.checkForJump()
+
+    def checkForJump(self):
+        if self.x+self.size<=15:
+            self.x=585
+        elif self.x>=585:
+            self.x=-15
 
     # Finds the next direction for pacman to move to
     def findDir(self,targetRow,targetCol,board):
@@ -65,11 +72,12 @@ class Ghost(pygame.sprite.Sprite):
         return bestDir
 
     def isLegalMove(self,row,col,board):
-        if board[row][col].score<0:
-            return False
-        if self.outOfCell==True:
-            return ((row,col) not in Ghost.cell)
-        else:
+        try:
+            if board[row][col].score<0:
+                return False
+            if self.outOfCell==True:
+                return ((row,col) not in Ghost.cell)
+        except:
             return True
 
     def move(self):
