@@ -1,4 +1,5 @@
 import pygame
+import copy
 from Ghost3 import Ghost
 from Ghost3 import Blinky
 from Ghost3 import Pinky
@@ -14,39 +15,18 @@ from Ghost3 import Clide
 ######################################################
 ############ HELPER FUNCTIONS ########################
 ######################################################
-
-def initBoard():
-    board=[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
-           [-1, 2,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 2,-1],
-           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
-           [-1, 1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1, 1,-1],
-           [-1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
-           [-1,-1,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1,-1,-1],
-           [-1,-1,-1,-1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1,-1,-1,-1,-1],
-           [-1,-1,-1,-1, 1,-1, 1,-1,-1, 0,-1,-1, 1,-1, 1,-1,-1,-1,-1],
-           [ 1, 1, 1, 1, 1, 1, 1,-1, 0, 0, 0,-1, 1, 1, 1, 1, 1, 1, 1],
-           [-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1],
-           [-1,-1,-1,-1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1,-1,-1,-1,-1],
-           [-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1],
-           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
-           [-1, 1,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 1,-1],
-           [-1, 2, 1,-1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,-1, 1, 2,-1],
-           [-1,-1, 1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1, 1,-1,-1],
-           [-1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
-           [-1, 1,-1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1,-1, 1,-1],
-           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
-           [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]]
+def initBoard(board,color):
+    newBoard=copy.deepcopy(board)
     rows,cols,size,xMargin,yMargin=21,19,30,30,65
     for row in range(rows):
         for col in range(cols):
             x = xMargin+col*size
             y = yMargin+row*size
             if board[row][col]<0:
-                board[row][col]=WallTile(x,y,board[row][col])
+                newBoard[row][col]=WallTile(x,y,board[row][col],color)
             elif board[row][col]>=0:
-                board[row][col]=Tile(x,y,board[row][col])
-    return board
+                newBoard[row][col]=Tile(x,y,board[row][col])
+    return newBoard
 
 def checkForWin(pacdots):
     return len(pacdots)==0
@@ -58,9 +38,10 @@ def notLegalMove(pacman,tiles):
             return True
     return False
 
-def getButton(size,color):
+def getButton(size,color=None):
     button=pygame.Surface(size)
-    button.fill(color)
+    if color!=None:
+        button.fill(color)
     return button
 
 def getFont(size,text,color):
@@ -99,11 +80,10 @@ class Tile(pygame.sprite.Sprite):
         self.rect=(x-15,y-15,self.size,self.size)
 
 class WallTile(Tile):
-    def __init__(self,x,y,score):
+    def __init__(self,x,y,score,color):
         super().__init__(x,y,score)
         self.score=-1
-        self.rimColor=(0,0,255)
-        self.image.fill(self.rimColor)
+        self.image.fill(color)
 
 class Pacman(pygame.sprite.Sprite):
 
@@ -205,6 +185,92 @@ class Pacman(pygame.sprite.Sprite):
                 ghost.frightened=False
 
 class PygameGame(object):
+
+    blueBoard=[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 2,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 2,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1,-1,-1, 0,-1,-1, 1,-1, 1,-1,-1,-1,-1],
+           [ 1, 1, 1, 1, 1, 1, 1,-1, 0, 0, 0,-1, 1, 1, 1, 1, 1, 1, 1],
+           [-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1,-1,-1,-1,-1],
+           [-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 1,-1],
+           [-1, 2, 1,-1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,-1, 1, 2,-1],
+           [-1,-1, 1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1, 1,-1,-1],
+           [-1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]]
+    purpleBoard=[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 2,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 2,-1],
+           [-1, 1, 1, 1, 1, 1, 1,-1, 1,-1, 1,-1, 1, 1, 1, 1, 1, 1,-1],
+           [-1,-1, 1,-1,-1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1],
+           [ 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1],
+           [-1,-1, 1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1, 1,-1,-1],
+           [-1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1,-1],
+           [-1, 1,-1,-1,-1,-1, 1,-1,-1, 0,-1,-1, 1,-1,-1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1, 1, 1,-1, 0, 0, 0,-1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 1,-1, 1,-1,-1, 1,-1,-1,-1,-1,-1, 1,-1,-1, 1,-1, 1,-1],
+           [-1, 1,-1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1,-1, 1,-1],
+           [-1, 1,-1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1, 1,-1],
+           [-1, 1,-1, 1, 1, 1, 1,-1, 1,-1, 1,-1, 1, 1, 1, 1,-1, 1,-1],
+           [-1, 1,-1, 1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1, 1,-1, 1,-1],
+           [-1, 2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 2,-1],
+           [-1, 1,-1, 1,-1,-1, 1,-1,-1,-1,-1,-1, 1,-1,-1, 1,-1, 1,-1],
+           [-1, 1,-1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1,-1, 1,-1],
+           [-1, 1,-1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]]
+    cyanBoard=[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 2,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 2,-1],
+           [-1, 1,-1,-1, 1, 1, 1,-1, 1,-1, 1,-1, 1, 1, 1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1,-1, 1,-1, 1, 1, 1,-1, 1,-1, 1, 1, 1, 1,-1],
+           [-1,-1, 1,-1,-1,-1, 1, 1, 1,-1, 1, 1, 1,-1,-1,-1, 1,-1,-1],
+           [-1,-1, 1, 1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1, 1, 1,-1,-1],
+           [-1,-1, 1,-1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1,-1, 1,-1,-1],
+           [-1,-1, 1,-1, 1,-1, 1,-1,-1, 0,-1,-1, 1,-1, 1,-1, 1,-1,-1],
+           [ 1, 1, 1,-1, 1, 1, 1,-1, 0, 0, 0,-1, 1, 1, 1,-1, 1, 1, 1],
+           [-1,-1,-1,-1,-1,-1, 1,-1,-1,-1,-1,-1, 1,-1,-1,-1,-1,-1,-1],
+           [ 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1],
+           [-1,-1, 1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1, 1, 1,-1,-1],
+           [-1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1,-1],
+           [-1,-1, 1,-1,-1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1],
+           [-1,-1, 1, 1, 1, 1, 1,-1, 1, 0, 1,-1, 1, 1, 1, 1, 1,-1,-1],
+           [-1,-1, 1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1],
+           [-1, 1, 2,-1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1,-1, 2, 1,-1],
+           [-1, 1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]]
+    magentaBoard=[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 2,-1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1,-1, 2,-1],
+           [-1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1,-1],
+           [-1,-1,-1, 1,-1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1, 1,-1,-1,-1],
+           [-1, 1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1, 1,-1],
+           [-1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1,-1],
+           [-1,-1, 1,-1, 1,-1, 1,-1,-1, 0,-1,-1, 1,-1, 1,-1, 1,-1,-1],
+           [ 1, 1, 1, 1, 1,-1, 1,-1, 0, 0, 0,-1, 1,-1, 1, 1, 1, 1, 1],
+           [-1,-1, 1,-1,-1,-1, 1,-1,-1,-1,-1,-1, 1,-1,-1,-1, 1,-1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1, 1,-1],
+           [-1, 1,-1, 1, 1,-1, 1, 1, 1,-1, 1, 1, 1,-1, 1, 1,-1, 1,-1],
+           [-1, 1,-1, 1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1, 1,-1, 1,-1],
+           [-1, 2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 2,-1],
+           [-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1],
+           [-1, 1, 1, 1, 1, 1,-1, 1, 1,-1, 1, 1,-1, 1, 1, 1, 1, 1,-1],
+           [-1, 1,-1,-1,-1,-1,-1,-1, 1,-1, 1,-1,-1,-1,-1,-1,-1, 1,-1],
+           [-1, 1, 1, 1, 1, 1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1, 1, 1,-1],
+           [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]]
+
     def init(self):
         pass
 
@@ -242,7 +308,10 @@ class PygameGame(object):
         self.fps = fps
         self.title = title
         self.bgColor = (0, 0, 0)
-        self.digitBoard=initBoard()
+        self.blueBoard=PygameGame.blueBoard
+        self.purpleBoard=PygameGame.purpleBoard
+        self.cyanBoard=PygameGame.cyanBoard
+        self.magentaBoard=PygameGame.magentaBoard
         pygame.init()
 
     def run(self):
@@ -275,7 +344,16 @@ class PygameGame(object):
 
 class Game(PygameGame):
 
-    def init(self,pacmanLives=3,prev=None,board=None):
+    blueMapImage=pygame.transform.scale(pygame.image.load('Images/blueMap.png'),
+                                        (200,300))
+    purpleMapImage=pygame.transform.scale(
+                            pygame.image.load('Images/purpleMap.png'),(200,300))
+    cyanMapImage=pygame.transform.scale(pygame.image.load('Images/cyanMap.png'),
+                                        (200,300))
+    magentaMapImage=pygame.transform.scale(
+                            pygame.image.load('Images/magentaMap.png'),(200,300))
+    
+    def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,boardInit=PygameGame.blueBoard):
         # if start of game, set mode to menu
         if pacmanLives==3:
             self.mode='menu'
@@ -283,7 +361,7 @@ class Game(PygameGame):
         if board!=None:
             self.board=board
         else:
-            self.board=initBoard()
+            self.board=initBoard(boardInit,color)
         # init tiles
         self.initTiles()
         # init pacdots
@@ -330,14 +408,17 @@ class Game(PygameGame):
         self.ghostGroup.add(self.clide)
     
     def keyPressed(self, code, mod):
-        if code == pygame.K_ESCAPE:
+        if code==pygame.K_ESCAPE:
             self.init()
+        if self.mode=='play':
+            if code==pygame.K_p:
+                self.gameOn= not self.gameOn
 
     def mousePressed(self,x,y):
         if self.mode=='menu':
-            # clicked on play
+            # clicked on play, start to choose map or design map
             if 200<=x<=400 and 410<=y<=490:
-                self.mode='play'
+                self.mode='chooseMode'
                 self.gameOn=True
             # clicked on help
             elif 200<=x<=400 and 510<=y<=590:
@@ -345,6 +426,33 @@ class Game(PygameGame):
             # clicked on quit
             elif 200<=x<=400 and 610<=y<=690:
                 self.playing=False
+        elif self.mode=='chooseMode':
+            # clicked on choose map
+            if 50<=x<=250 and 200<=y<=400:
+                self.mode='chooseMap'
+            elif 350<=x<=550 and 200<=y<=400:
+                self.mode='designMap'
+        elif self.mode=='chooseMap':
+            if 50<=x<=250 and 25<=y<=325:
+                self.wallColor=(0,0,255)
+                self.init(3,self.wallColor,None,None,PygameGame.blueBoard)
+                self.mode='play'
+                self.gameOn=True
+            elif 350<=x<=550 and 25<=y<=325:
+                self.wallColor=(128,0,0)
+                self.init(3,self.wallColor,None,None,PygameGame.purpleBoard)
+                self.mode='play'
+                self.gameOn=True
+            elif 50<=x<=250 and 375<=y<=675:
+                self.wallColor=(0,255,255)
+                self.init(3,self.wallColor,None,None,PygameGame.cyanBoard)
+                self.mode='play'
+                self.gameOn=True
+            elif 350<=x<=550 and 375<=y<=675:
+                self.wallColor=(255,0,255)
+                self.init(3,self.wallColor,None,None,PygameGame.magentaBoard)
+                self.mode='play'
+                self.gameOn=True
 
     def playGame(self):
         self.pacmanGroup.update(self.isKeyPressed,self.tileGroup,self.board,
@@ -368,7 +476,7 @@ class Game(PygameGame):
                 if self.pacman.lives==0:
                     self.gameOn=False
                 else:
-                    self.init(self.pacman.lives,self.pacdotGroup,self.board)
+                    self.init(self.pacman.lives,self.wallColor,self.pacdotGroup,self.board)
 
     def timerFired(self, dt):
         if self.mode=='play':
@@ -378,20 +486,46 @@ class Game(PygameGame):
     def redrawAll(self, screen):
         if self.mode=='play':
             self.redrawGame(screen)
-        if self.mode=='menu':
+        elif self.mode=='menu':
             self.redrawMenu(screen)
+        elif self.mode=='chooseMode':
+            self.redrawChooseMode(screen)
+        elif self.mode=='chooseMap':
+            self.redrawChooseMap(screen)
+        elif self.mode=='help':
+            self.redrawHelp(screen)
+
+    def redrawChooseMap(self,screen):
+        blueMap=Game.blueMapImage
+        purpleMap=Game.purpleMapImage
+        cyanMap=Game.cyanMapImage
+        magentaMap=Game.magentaMapImage
+        screen.blit(blueMap,(50,25))
+        screen.blit(purpleMap,(350,25))
+        screen.blit(cyanMap,(50,375))
+        screen.blit(magentaMap,(350,375))
+
+    def redrawChooseMode(self,screen):
+        chooseMapButton=getButton((200,200),(255,255,255))
+        chooseMapFont=getFont(30,'Choose Map',(0,0,0))
+        screen.blit(chooseMapButton,(50,250))
+        screen.blit(chooseMapFont,(100,300))
+        designMapButton=getButton((200,200),(255,255,255))
+        designMapFont=getFont(30,'Design Map',(0,0,0))
+        screen.blit(designMapButton,(350,250))
+        screen.blit(designMapFont,(400,300))
 
     def redrawMenu(self,screen):
         playButton=getButton((200,80),(255,255,255))
-        playFont=getFont(60,'Play',(0,0,225))
+        playFont=getFont(60,'Play',(0,0,0))
         screen.blit(playButton,(200,410))
         screen.blit(playFont,(250,430))
         helpButton=getButton((200,80),(255,255,255))
-        helpFont=getFont(60,'Help',(0,0,225))
+        helpFont=getFont(60,'Help',(0,0,0))
         screen.blit(helpButton,(200,510))
         screen.blit(helpFont,(250,530))
         quitButton=getButton((200,80),(255,255,255))
-        quitFont=getFont(60,'Quit',(0,0,225))
+        quitFont=getFont(60,'Quit',(0,0,0))
         screen.blit(quitButton,(200,610))
         screen.blit(quitFont,(250,630))
 
@@ -403,10 +537,13 @@ class Game(PygameGame):
         pygame.display.flip()
 
         # Why is the text blinking???
-        if self.gameOn==False:
+        if self.pacman.lives==0:
             self.font=pygame.font.SysFont(None,60)
-            self.font=self.font.render('You lose!', True, (255,255,0))
+            self.font=self.font.render('You lost!', True, (255,255,0))
             screen.blit(self.font,(300,300))
             pygame.display.flip()
+
+    def redrawHelp(self,screen):
+        pass
      
 Game(600,700).run() 
