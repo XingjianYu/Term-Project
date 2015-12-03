@@ -186,7 +186,8 @@ class Game(PygameGame):
                         self.pacdotGroup.add(pacdot)
         else:
             self.pacdotGroup=prev
-        
+        print (len(self.pacdotGroup))
+
     def initGhosts(self):
         self.ghostGroup=pygame.sprite.Group()
         self.blinky=Blinky()
@@ -222,7 +223,6 @@ class Game(PygameGame):
             (rows,cols)=(len(self.board),len(self.board[0]))
             if self.designButton=='draw':
                 if 0<=row<rows and 0<=col<cols:
-                    print (row,col,x,y)
                     (x,y)=(30+30*col,65+30*row)
                     self.board[row][col]=WallTile(x,y,-1,(0,0,255))
                     self.tileGroup.add(self.board[row][col])
@@ -250,29 +250,28 @@ class Game(PygameGame):
 
     def chooseMode(self,x,y):
         # clicked on choose map
-            if 50<=x<=250 and 200<=y<=400:
-                self.mode='chooseMap'
-            elif 350<=x<=550 and 200<=y<=400:
-                self.mode='designMap'
-                # get a blank board
-                self.board=Board().getBoard()
-                self.board=initBoard(self.board,(0,0,255))
-                self.tileGroup=pygame.sprite.Group()
-                for row in range(len(self.board)):
-                    for col in range(len(self.board[0])):
-                        self.tileGroup.add(self.board[row][col])
+        if 50<=x<=250 and 200<=y<=400:
+            self.mode='chooseMap'
+        elif 350<=x<=550 and 200<=y<=400:
+            self.mode='designMap'
+            # get a blank board with blue walls
+            self.board=initBoard(Board().getBoard(),(0,0,255))
+            self.tileGroup=pygame.sprite.Group()
+            for row in range(len(self.board)):
+                for col in range(len(self.board[0])):
+                    self.tileGroup.add(self.board[row][col])
 
     def chooseFromMenu(self,x,y):
         # clicked on play, start to choose map or design map
-            if 200<=x<=400 and 410<=y<=490:
-                self.mode='chooseMode'
-                self.gameOn=True
-            # clicked on help
-            elif 200<=x<=400 and 510<=y<=590:
-                self.mode='help'
-            # clicked on quit
-            elif 200<=x<=400 and 610<=y<=690:
-                self.playing=False
+        if 200<=x<=400 and 410<=y<=490:
+            self.mode='chooseMode'
+            self.gameOn=True
+        # clicked on help
+        elif 200<=x<=400 and 510<=y<=590:
+            self.mode='help'
+        # clicked on quit
+        elif 200<=x<=400 and 610<=y<=690:
+            self.playing=False
 
     def chooseMap(self,x,y):
         if 50<=x<=250 and 25<=y<=325:
