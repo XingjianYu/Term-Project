@@ -1,0 +1,484 @@
+import pygame
+import copy
+from Ghost3 import Ghost
+from Ghost3 import Blinky
+from Ghost3 import Pinky
+from Ghost3 import Inky
+from Ghost3 import Clide
+from Classes import Pacdot
+from Classes import Tile
+from Classes import WallTile
+from Classes import Pacman
+from Board import Board
+from Board import BlueBoard
+from Board import PurpleBoard
+from Board import CyanBoard
+from Board import MagentaBoard
+
+# from Ghost import Ghost
+''' The class PygameGame  and class Game are cited from 
+    https://github.com/LBPeraza/Pygame-Asteroids
+    This framework is originally created by Lukas Peraza for 
+    15-112 F15 Pygame Optional Lecture, 11/11/15
+'''
+######################################################
+############ HELPER FUNCTIONS ########################
+######################################################
+def initBoard(board,color):
+    newBoard=copy.deepcopy(board)
+    rows,cols,size,xMargin,yMargin=21,19,30,30,65
+    for row in range(rows):
+        for col in range(cols):
+            x = xMargin+col*size
+            y = yMargin+row*size
+            if board[row][col]<0:
+                newBoard[row][col]=WallTile(x,y,board[row][col],color)
+            elif board[row][col]>=0:
+                newBoard[row][col]=Tile(x,y,board[row][col])
+    return newBoard
+
+def checkForWin(pacdots):
+    return len(pacdots)==0
+
+def getButton(size,color=None):
+    button=pygame.Surface(size)
+    if color!=None:
+        button.fill(color)
+    return button
+
+def getFont(size,text,color):
+    font=pygame.font.SysFont(None,size)
+    font=font.render(text,True,color)
+    return font
+
+
+def findLegalTiles(graph,start,legalTiles):
+    queue = [start]
+    while queue:
+        vertex = queue.pop(0)
+        if vertex not in legalTiles:
+            legalTiles.add(vertex)
+            queue.extend(graph[vertex] - legalTiles)
+    return legalTiles
+
+def isLegalTile(row,col):
+    return (row,col) not in {(15,9),(8,7),(8,8),(8,9),(8,10),(8,11),
+    (9,7),(9,8),(9,9),(9,10),(9,11),(10,7),(10,8),(10,9),(10,10),(10,11)}
+
+######################################################
+############ Game ####################################
+######################################################
+
+class PygameGame(object):
+
+    blueBoard=BlueBoard().getBoard()
+    purpleBoard=PurpleBoard().getBoard()
+    cyanBoard=CyanBoard().getBoard()
+    magentaBoard=MagentaBoard().getBoard()
+
+    def init(self):
+        pass
+
+    def mousePressed(self, x, y):
+        pass
+
+    def mouseReleased(self, x, y):
+        pass
+
+    def mouseMotion(self, x, y):
+        pass
+
+    def mouseDrag(self, x, y):
+        pass
+
+    def keyPressed(self, keyCode, modifier):
+        pass
+
+    def keyReleased(self, keyCode, modifier):
+        pass
+
+    def timerFired(self, dt):
+        pass
+
+    def redrawAll(self, screen):
+        pass
+
+    def isKeyPressed(self, key):
+        ''' return whether a specific key is being held '''
+        return self._keys.get(key, False)
+
+    def __init__(self, width=600, height=700, fps=50, title="Pacman"):
+        self.width = width
+        self.height = height
+        self.fps = fps
+        self.title = title
+        self.bgColor = (0, 0, 0)
+        self.blueBoard=PygameGame.blueBoard
+        self.purpleBoard=PygameGame.purpleBoard
+        self.cyanBoard=PygameGame.cyanBoard
+        self.magentaBoard=PygameGame.magentaBoard
+        pygame.init()
+
+    def run(self):
+        clock = pygame.time.Clock()
+        screen = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption(self.title)
+        self._keys = dict()
+        self.init()
+        self.playing = True
+        while self.playing:
+            time = clock.tick(self.fps)
+            self.timerFired(time)
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    self._keys[event.key] = True
+                    self.keyPressed(event.key, event.mod)
+                elif event.type == pygame.KEYUP:
+                    self._keys[event.key] = False
+                    self.keyReleased(event.key, event.mod)
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    self.mousePressed(*(event.pos))
+                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    self.mouseReleased(*(event.pos))
+                elif (event.type == pygame.MOUSEMOTION and
+                      event.buttons[0] == 1):
+                    self.mouseDrag(*(event.pos))
+                elif event.type == pygame.QUIT:
+                    self.playing = False
+            screen.fill(self.bgColor)
+            self.redrawAll(screen)
+            pygame.display.flip()
+        pygame.quit()
+
+class Game(PygameGame):
+
+    blueMapImage=pygame.transform.scale(pygame.image.load('Images/blueMap.png'),(200,300))
+    purpleMapImage=pygame.transform.scale(pygame.image.load('Images/purpleMap.png'),(200,300))
+    cyanMapImage=pygame.transform.scale(pygame.image.load('Images/cyanMap.png'),(200,300))
+    magentaMapImage=pygame.transform.scale(pygame.image.load('Images/magentaMap.png'),(200,300))
+    
+    def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,boardInit=PygameGame.blueBoard):
+        # if start of game, set mode to menu
+        if pacmanLives==3:
+            self.mode='menu'
+            self.gameOn=False
+        if board!=None:
+            self.board=board
+        else:
+            self.board=initBoard(boardInit,color)
+        # init tiles
+        self.initTiles()
+        # init pacdots
+        self.initPacdots(prev) 
+        # init pacman
+        self.initPacman(pacmanLives)
+        # init ghosts
+        self.initGhosts()
+        self.designButton=None
+        self.illegalMap=False
+
+    def initPacman(self,pacmanLives):
+        self.pacmanGroup=pygame.sprite.Group()
+        self.pacman=Pacman(pacmanLives)
+        self.pacmanGroup.add(self.pacman)
+
+    def initTiles(self):
+        self.tileGroup=pygame.sprite.Group()
+        for row in range(len(self.board)):
+            for col in range(len(self.board[0])):
+                self.tileGroup.add(self.board[row][col])
+
+    def initPacdots(self,prev):
+        if prev==None:
+            self.pacdotGroup=pygame.sprite.Group()
+            for row in range(len(self.board)):
+                for col in range(len(self.board[0])):
+                    # The x,y coordinates should be centered
+                    if self.board[row][col].score>0:
+                        pacdot=Pacdot(self.board[row][col].x,
+                                      self.board[row][col].y,
+                                      self.board[row][col].score)
+                        self.pacdotGroup.add(pacdot)
+        else:
+            self.pacdotGroup=prev
+
+    def initGhosts(self):
+        self.ghostGroup=pygame.sprite.Group()
+        self.blinky=Blinky()
+        self.ghostGroup.add(self.blinky)
+        self.pinky=Pinky()
+        self.ghostGroup.add(self.pinky)
+        self.inky=Inky()
+        self.ghostGroup.add(self.inky)
+        self.clide=Clide()
+        self.ghostGroup.add(self.clide)
+    
+    def keyPressed(self, code, mod):
+        if code==pygame.K_ESCAPE:
+            self.init()
+        if self.mode=='play':
+            if code==pygame.K_p:
+                self.gameOn= not self.gameOn
+
+    def mousePressed(self,x,y):
+        if self.mode=='menu':
+            self.chooseFromMenu(x,y)
+        elif self.mode=='chooseMode':
+            self.chooseMode(x,y)
+        elif self.mode=='chooseMap':
+            self.chooseMap(x,y)
+        elif self.mode=='designMap':
+            self.chooseDesign(x,y)
+
+    def mouseDrag(self,x,y):
+        super().mouseDrag(x,y)
+        if self.mode=='designMap':
+            (row,col)=((y-50)//30,(x-15)//30)
+            if isLegalTile(row,col):
+                (rows,cols)=(len(self.board),len(self.board[0]))
+                if self.designButton=='draw':
+                    if 0<=row<rows and 0<=col<cols:
+                        (x,y)=(30+30*col,65+30*row)
+                        self.board[row][col]=WallTile(x,y,-1,(0,0,255))
+                        self.updateTileGroup()
+                elif self.designButton=='delete':
+                    if 0<=row<rows and 0<=col<cols:
+                        (x,y)=(30+30*col,65+30*row)
+                        if (row,col) not in {(8,9),(9,8),(9,9),(9,10)}:
+                            self.board[row][col]=Tile(x,y,1)
+                            self.updateTileGroup()
+
+    def updateTileGroup(self):
+        self.tileGroup=pygame.sprite.Group()
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                self.tileGroup.add(self.board[row][col])
+   
+    def chooseDesign(self,x,y):
+        # pressed on Draw Wall button 
+        if 100<=x<=200 and 10<=y<=40:
+            self.designButton='draw'
+        # pressed on Play button
+        elif 250<=x<=350 and 10<=y<=40:
+            if self.isLegalMap():
+                self.wallColor=(0,0,255)
+                self.init(3,self.wallColor,None,self.board)
+                self.mode='play'
+                self.gameOn=True
+                self.designButton=None
+            else:
+                self.illegalMap=True
+        # pressed on Delete Wall button
+        elif 400<=x<=450 and 10<=y<=40:
+            self.designButton='delete'
+        # pressed Reflect button
+        elif 500<=x<=550 and 10<=y<=40:
+            self.reflect()
+
+    def isLegalMap(self):
+        # check if all empty tiles on board can be visited
+        self.graph=self.getGraph()
+        tilesToVisit=self.findTilesToVisit()
+        start=(self.pacman.row,self.pacman.col)
+        legalTiles=set()
+        legalTiles=findLegalTiles(self.graph,start,legalTiles)
+        return legalTiles==tilesToVisit
+
+    def getGraph(self):
+        graph=dict()
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                # if tile is Tile, record all of its adjacent Tiles
+                if type(self.board[row][col])==Tile:
+                    adjacentTiles=self.getAdjTiles(row,col)
+                    graph[(row,col)]=adjacentTiles
+        return graph
+
+    def getAdjTiles(self,row,col):
+        adjacentTiles=set()
+        dirs=[(-1,0),(1,0),(0,-1),(0,1)]
+        for (drow,dcol) in dirs:
+            nextRow,nextCol=row+drow,col+dcol
+            # check if nextRow and nextCol is within bounds
+            if 0<=nextRow<=20 and 0<=nextCol<=18:
+                if type(self.board[nextRow][nextCol])==Tile:
+                    adjacentTiles.add((nextRow,nextCol))
+        return adjacentTiles
+
+    def findTilesToVisit(self):
+        tilesToVisit=set()
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                if type(self.board[row][col])==Tile:
+                    tilesToVisit.add((row,col))
+        return tilesToVisit
+
+    def reflect(self):
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                if type(self.board[row][col])==WallTile:
+                    # To reflect, paired cols sum to 18
+                    self.board[row][18-col]=WallTile(30+30*(18-col),65+30*row,-1,(0,0,255))
+                    self.updateTileGroup()
+
+    def chooseMode(self,x,y):
+        # clicked on choose map
+        if 50<=x<=250 and 200<=y<=400:
+            self.mode='chooseMap'
+        elif 350<=x<=550 and 200<=y<=400:
+            self.mode='designMap'
+            # get a blank board with blue walls
+            self.board=initBoard(Board().getBoard(),(0,0,255))
+            self.tileGroup=pygame.sprite.Group()
+            for row in range(len(self.board)):
+                for col in range(len(self.board[0])):
+                    self.tileGroup.add(self.board[row][col])
+
+    def chooseFromMenu(self,x,y):
+        # clicked on play, start to choose map or design map
+        if 200<=x<=400 and 410<=y<=490:
+            self.mode='chooseMode'
+            self.gameOn=True
+        # clicked on help
+        elif 200<=x<=400 and 510<=y<=590:
+            self.mode='help'
+        # clicked on quit
+        elif 200<=x<=400 and 610<=y<=690:
+            self.playing=False
+
+    def chooseMap(self,x,y):
+        if 50<=x<=250 and 25<=y<=325:
+            self.wallColor=(0,0,255)
+            self.init(3,self.wallColor,None,None,PygameGame.blueBoard)
+            self.mode='play'
+            self.gameOn=True
+        elif 350<=x<=550 and 25<=y<=325:
+            self.wallColor=(128,0,0)
+            self.init(3,self.wallColor,None,None,PygameGame.purpleBoard)
+            self.mode='play'
+            self.gameOn=True
+        elif 50<=x<=250 and 375<=y<=675:
+            self.wallColor=(0,255,255)
+            self.init(3,self.wallColor,None,None,PygameGame.cyanBoard)
+            self.mode='play'
+            self.gameOn=True
+        elif 350<=x<=550 and 375<=y<=675:
+            self.wallColor=(255,0,255)
+            self.init(3,self.wallColor,None,None,PygameGame.magentaBoard)
+            self.mode='play'
+            self.gameOn=True
+
+    def playGame(self):
+        self.pacmanGroup.update(self.isKeyPressed,self.tileGroup,self.board,
+                                    self.ghostGroup)
+        # check eaten pacdots
+        eatenPacdot=pygame.sprite.spritecollide(self.pacman,
+                                                self.pacdotGroup,True)
+        self.ghostGroup.update(self.pacman,self.board)
+        # check for win
+        if checkForWin(self.pacdotGroup)==True:
+            self.gameOn=False
+        # check for loss
+        collideGhost=pygame.sprite.spritecollide(self.pacman,
+                                                 self.ghostGroup,False)
+        for ghost in collideGhost:
+            if self.pacman.frightening==True:
+                ghost.__init__()
+                ghost.frightened=False
+            else:
+                self.pacman.lives-=1
+                if self.pacman.lives==0:
+                    self.gameOn=False
+                else:
+                    self.init(self.pacman.lives,self.wallColor,self.pacdotGroup,self.board)
+
+    def timerFired(self, dt):
+        if self.mode=='play':
+            if self.gameOn==True:
+                self.playGame()
+    
+    def redrawAll(self, screen):
+        if self.mode=='play':
+            self.redrawGame(screen)
+        elif self.mode=='menu':
+            self.redrawMenu(screen)
+        elif self.mode=='chooseMode':
+            self.redrawChooseMode(screen)
+        elif self.mode=='chooseMap':
+            self.redrawChooseMap(screen)
+        elif self.mode=='help':
+            self.redrawHelp(screen)
+        elif self.mode=='designMap':
+            self.redrawDesignMap(screen)
+
+    def redrawDesignMap(self,screen):
+        self.tileGroup.draw(screen)
+        drawButton=getButton((100,30),(255,255,255))
+        playButton=getButton((100,30),(255,255,255))
+        deleteButton=getButton((50,30),(255,255,255))
+        reflectButton=getButton((50,30),(255,255,255))
+        screen.blit(drawButton,(100,10))
+        screen.blit(playButton,(250,10))
+        screen.blit(deleteButton,(400,10))
+        screen.blit(reflectButton,(500,10))
+        if self.illegalMap==True:
+            illegalMapFont=getFont(60,'Illegal Map',(255,255,255))
+            screen.blit(illegalMapFont,(250,350))
+        pygame.display.flip()
+
+    def redrawChooseMap(self,screen):
+        blueMap=Game.blueMapImage
+        purpleMap=Game.purpleMapImage
+        cyanMap=Game.cyanMapImage
+        magentaMap=Game.magentaMapImage
+        screen.blit(blueMap,(50,25))
+        screen.blit(purpleMap,(350,25))
+        screen.blit(cyanMap,(50,375))
+        screen.blit(magentaMap,(350,375))
+
+    def redrawChooseMode(self,screen):
+        chooseMapButton=getButton((200,200),(255,255,255))
+        chooseMapFont=getFont(30,'Choose Map',(0,0,0))
+        screen.blit(chooseMapButton,(50,250))
+        screen.blit(chooseMapFont,(100,300))
+        designMapButton=getButton((200,200),(255,255,255))
+        designMapFont=getFont(30,'Design Map',(0,0,0))
+        screen.blit(designMapButton,(350,250))
+        screen.blit(designMapFont,(400,300))
+
+    def redrawMenu(self,screen):
+        playButton=getButton((200,80),(255,255,255))
+        playFont=getFont(60,'Play',(0,0,0))
+        screen.blit(playButton,(200,410))
+        screen.blit(playFont,(250,430))
+        helpButton=getButton((200,80),(255,255,255))
+        helpFont=getFont(60,'Help',(0,0,0))
+        screen.blit(helpButton,(200,510))
+        screen.blit(helpFont,(250,530))
+        quitButton=getButton((200,80),(255,255,255))
+        quitFont=getFont(60,'Quit',(0,0,0))
+        screen.blit(quitButton,(200,610))
+        screen.blit(quitFont,(250,630))
+
+    def redrawGame(self,screen):
+        self.tileGroup.draw(screen)
+        self.pacdotGroup.draw(screen)
+        self.pacmanGroup.draw(screen)
+        self.ghostGroup.draw(screen)
+        pygame.display.flip()
+
+        # Why is the text blinking???
+        if self.pacman.lives==0:
+            self.font=pygame.font.SysFont(None,60)
+            self.font=self.font.render('You lost!', True, (255,255,0))
+            screen.blit(self.font,(300,300))
+            pygame.display.flip()
+
+    def redrawHelp(self,screen):
+        pass
+     
+Game(600,700).run() 
