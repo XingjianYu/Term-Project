@@ -1,0 +1,222 @@
+import pygame
+import random
+
+class Ghost(pygame.sprite.Sprite):
+
+    # Ghost image processing
+    image = pygame.image.load('Images/Ghost2.png')
+    rows, cols = 2,2
+    width, height = image.get_size()
+    cellWidth, cellHeight = width / cols, height / rows
+    images = []
+    for i in range(rows):
+        for j in range(cols):
+            subImage = image.subsurface(
+                (i * cellWidth, j * cellHeight, cellWidth, cellHeight))
+            images.append(pygame.transform.scale(subImage,(30,30)))
+    frightenedImage=pygame.image.load('Images/frightenedGhost.png')
+    frightenedImage=pygame.transform.scale(frightenedImage,(30,30))
+    cell={(8,9),(9,8),(9,9),(9,10)}
+    # need to keep track of blinky pos for inky
+    blinkyRow,blinkyCol=7,9
+
+    def __init__(self):
+        super().__init__()
+        self.size=30
+        self.row=8
+        self.col=9
+        # x,y are the center coordinates
+        self.x=15+15+30*self.col
+        self.y=50+15+30*self.row
+        self.rect=(self.x-15,self.y-15,self.size,self.size)
+        self.dir=(0,-1) # Left
+        self.outOfCell=False
+        self.frightened=False
+        self.counter=0
+
+
+    def update(self,pacman,board):
+        if self.counter%6==0:
+            (targetRow,targetCol)=self.setTargetTile(pacman)
+            (drow,dcol)=self.findDir(targetRow,targetCol,board)
+            self.dir=(drow,dcol)
+        self.move()
+        self.rect=(self.x-15,self.y-15,self.size,self.size)
+        (self.row,self.col)=((self.y-65)//30,(self.x-30)//30)
+        if (self.row,self.col) not in Ghost.cell:
+            self.outOfCell=True
+        self.checkForJump()
+
+    def checkForJump(self):
+        if self.x+self.size<=15:
+            self.x=555
+        elif self.x>=585:
+            self.x=15
+
+    # Finds the next direction for pacman to move to
+    def findDir(self,targetRow,targetCol,board):
+        bestDir,bestDistance=None,None
+        for (drow,dcol) in [(0,-1),(0,1),(-1,0),(1,0)]:
+            # do not turn around if possible
+            if (-1*drow,-1*dcol)!=self.dir:
+                nextRow,nextCol=self.row+drow,self.col+dcol
+                if self.isLegalMove(nextRow,nextCol,board):
+                    nextDis=(nextRow-targetRow)**2+(nextCol-targetCol)**2
+                    if bestDistance==None or nextDis<bestDistance:
+                        bestDistance=nextDis
+                        bestDir=(drow,dcol)
+        # No possible move except to turn back, so turn back
+        if bestDir==None:
+            (drow,dcol)=self.dir
+            bestDir=(-1*drow,-1*dcol)
+        return bestDir
+
+    def isLegalMove(self,row,col,board):
+        # if col is set to 19, means ghosts intend to jump: return True
+        if col==19:
+            return True
+        if board[row][col].score<0:
+            return False
+        if self.outOfCell==True:
+            return ((row,col) not in Ghost.cell)
+        return True
+
+    def move(self):
+        (drow,dcol)=self.dir
+        self.x+=dcol*5
+        self.y+=drow*5
+        self.counter+=1
+
+class Blinky(Ghost):
+
+    def __init__(self):
+        super().__init__()
+        self.image=Ghost.images[3]
+        self.row=7
+        self.col=9
+        self.x=15+15+30*self.col
+        self.y=50+15+30*self.row
+        self.rect=(self.x-15,self.y-15,self.size,self.size)
+        self.outOfCell=True
+
+    def setTargetTile(self,pacman):
+        # If ghosts frightened, move randomly
+        if self.frightened==True:
+            targetRow=random.randint(0,21)
+            targetCol=random.randint(0,19)
+            return (targetRow,targetCol)
+        # If not frightened, Blinky chases Pacman directly
+        else:
+            Blinky.row=self.row
+            Blinky.col=self.col
+            return (pacman.row,pacman.col)
+
+    def update(self,pacman,board):
+        if self.frightened==False:
+            self.image=Ghost.images[3]
+        else:
+            self.image=Ghost.frightenedImage
+        super().update(pacman,board)
+
+class Pinky(Ghost):
+
+    def __init__(self):
+        super().__init__()
+        self.image=Ghost.images[1]
+        self.row=9
+        self.col=9
+        self.x=15+15+30*self.col
+        self.y=50+15+30*self.row
+        self.rect=(self.x-15,self.y-15,self.size,self.size)
+        self.outOfCell=False
+
+    def setTargetTile(self,pacman):
+        # If ghosts frightened, move randomly
+        if self.frightened==True:
+            targetRow=random.randint(0,21)
+            targetCol=random.randint(0,19)
+            return (targetRow,targetCol)
+        elif self.outOfCell==False:
+            return (7,9)
+        # If not frightened, set target to 4 tiles ahead of pacman
+        else:
+            # if pacman.dir=='up':
+            #     return (pacman.row-4,pacman.col)
+            # elif pacman.dir=='down':
+            #     return (pacman.row+4,pacman.col)
+            # elif pacman.dir=='left':
+            #     return (pacman.row,pacman.col-4)
+            # elif pacman.dir=='right':
+            #     return (pacman.row,pacman.col+4)
+            return (pacman.row-4,pacman.col)
+
+    def update(self,pacman,board):
+        if self.frightened==False:
+            self.image=Ghost.images[1]
+        else:
+            self.image=Ghost.frightenedImage
+        super().update(pacman,board)
+
+class Inky(Ghost):
+
+    def __init__(self):
+        super().__init__()
+        self.image=Ghost.images[2]
+        self.row=9
+        self.col=8
+        self.x=15+15+30*self.col
+        self.y=50+15+30*self.row
+        self.rect=(self.x-15,self.y-15,self.size,self.size)
+        self.outOfCell=False
+
+    def setTargetTile(self,pacman):
+        # If ghosts frightened, move randomly
+        if self.frightened==True:
+            targetRow=random.randint(0,21)
+            targetCol=random.randint(0,19)
+            return (targetRow,targetCol)
+        # If not frightened, chase pacman based on the pos of Blinky
+        else:
+            return ((pacman.row*2-Ghost.blinkyRow),
+                    (pacman.col*2-Ghost.blinkyCol))
+
+    def update(self,pacman,board):
+        if self.frightened==False:
+            self.image=Ghost.images[2]
+        else:
+            self.image=Ghost.frightenedImage
+        super().update(pacman,board)
+
+class Clide(Ghost):
+
+    def __init__(self):
+        super().__init__()
+        self.image=Ghost.images[0]
+        self.row=9
+        self.col=10
+        self.x=15+15+30*self.col
+        self.y=50+15+30*self.row
+        self.rect=(self.x-15,self.y-15,self.size,self.size)
+        self.outOfCell=False
+
+    def setTargetTile(self,pacman):
+        # If ghosts frightened, move randomly
+        if self.frightened==True:
+            targetRow=random.randint(0,21)
+            targetCol=random.randint(0,19)
+            return (targetRow,targetCol)
+        # If not frightened, chase when out of 8 tiles, scatter otherwise
+        else:
+            if abs(self.row-pacman.row)+abs(self.col-pacman.col)>8:
+                return (pacman.row,pacman.col)
+            # When scattering, set target tile to the lower left corner outside 
+            # of board
+            else:
+                return (22,0)
+
+    def update(self,pacman,board):
+        if self.frightened==False:
+            self.image=Ghost.images[0]
+        else:
+            self.image=Ghost.frightenedImage
+        super().update(pacman,board)
