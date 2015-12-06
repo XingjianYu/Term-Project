@@ -109,7 +109,7 @@ class PygameGame(object):
         ''' return whether a specific key is being held '''
         return self._keys.get(key, False)
 
-    def __init__(self, width=600, height=700, fps=50, title="Pacman"):
+    def __init__(self, width=600, height=700, fps=25, title="Pacman"):
         self.width = width
         self.height = height
         self.fps = fps
@@ -399,7 +399,7 @@ class Game(PygameGame):
         collideGhost=pygame.sprite.spritecollide(self.pacman,
                                                  self.ghostGroup,False)
         for ghost in collideGhost:
-            if self.pacman.frightening==True:
+            if ghost.frightened==True:
                 ghost.__init__()
                 ghost.frightened=False
             else:
