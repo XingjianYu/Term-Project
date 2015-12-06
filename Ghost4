@@ -33,12 +33,13 @@ class Ghost(pygame.sprite.Sprite):
         self.outOfCell=False
         self.frightened=False
         self.counter=0
-
+        self.reset=False
 
     def update(self,pacman,board):
-        if self.counter%6==0:
-            (targetRow,targetCol)=self.setTargetTile(pacman)
-            (drow,dcol)=self.findDir(targetRow,targetCol,board)
+        if self.counter%6==0 or self.reset==True:
+            self.reset=False
+            (self.targetRow,self.targetCol)=self.setTargetTile(pacman)
+            (drow,dcol)=self.findDir(self.targetRow,self.targetCol,board)
             self.dir=(drow,dcol)
         self.move()
         self.rect=(self.x-15,self.y-15,self.size,self.size)
