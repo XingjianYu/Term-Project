@@ -1,14 +1,14 @@
 import pygame
 import copy
-from Ghost3 import Ghost
-from Ghost3 import Blinky
-from Ghost3 import Pinky
-from Ghost3 import Inky
-from Ghost3 import Clide
-from Classes import Pacdot
-from Classes import Tile
-from Classes import WallTile
-from Classes import Pacman
+from Ghost4 import Ghost
+from Ghost4 import Blinky
+from Ghost4 import Pinky
+from Ghost4 import Inky
+from Ghost4 import Clide
+from Classes2 import Pacdot
+from Classes2 import Tile
+from Classes2 import WallTile
+from Classes2 import Pacman
 from Board import Board
 from Board import BlueBoard
 from Board import PurpleBoard
@@ -51,15 +51,17 @@ def getFont(size,text,color):
     font=font.render(text,True,color)
     return font
 
+# findLegalTile function is adapted from original code by Edd Mann
+# http://eddmann.com/posts/depth-first-search-and-breadth-first-search-in-python/
 
-def findLegalTiles(graph,start,legalTiles):
-    queue = [start]
-    while queue:
-        vertex = queue.pop(0)
-        if vertex not in legalTiles:
-            legalTiles.add(vertex)
-            queue.extend(graph[vertex] - legalTiles)
-    return legalTiles
+def findLegalTiles(graph,start):
+    visited, stack = set(), [start]
+    while stack:
+        vertex = stack.pop()
+        if vertex not in visited:
+            visited.add(vertex)
+            stack.extend(graph[vertex] - visited)
+    return visited
 
 def isLegalTile(row,col):
     return (row,col) not in {(15,9),(8,7),(8,8),(8,9),(8,10),(8,11),
@@ -216,9 +218,20 @@ class Game(PygameGame):
     def keyPressed(self, code, mod):
         if code==pygame.K_ESCAPE:
             self.init()
-        if self.mode=='play':
+        elif self.mode=='play':
             if code==pygame.K_p:
                 self.gameOn= not self.gameOn
+        if self.gameOn==False:
+            if code==pygame.K_a:
+                self.resetTile()
+
+    def resetTile(self):
+        for ghost in self.ghostGroup:
+            ghost.reset=True
+            ghost.x=30+ghost.col*30
+            ghost.y=65+ghost.row*30
+            ghost.counter=0
+            ghost.rect = pygame.Rect(ghost.x-15,ghost.y-15,ghost.size,ghost.size)
 
     def mousePressed(self,x,y):
         if self.mode=='menu':
@@ -282,7 +295,7 @@ class Game(PygameGame):
         tilesToVisit=self.findTilesToVisit()
         start=(self.pacman.row,self.pacman.col)
         legalTiles=set()
-        legalTiles=findLegalTiles(self.graph,start,legalTiles)
+        legalTiles=findLegalTiles(self.graph,start)
         return legalTiles==tilesToVisit
 
     def getGraph(self):
