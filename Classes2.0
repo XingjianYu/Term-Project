@@ -65,9 +65,13 @@ class Pacman(pygame.sprite.Sprite):
         self.score=0
         self.frightening=False
         self.frightenTime=0
-        self.energizer=1
         self.lives=lives
         self.dx,self.dy=0,0
+        self.dirDict={'left': [(-5,0),Pacman.dirDict['left'][1]],
+            'right':[(5,0),Pacman.dirDict['right'][1]],
+            'up':[(0,-5),Pacman.dirDict['up'][1]],
+            'down':[(0,5),Pacman.dirDict['down'][1]],
+            'stand':[(0,0)]}
 
     def update(self,keysDown,tiles,board,ghosts):
         if keysDown(pygame.K_UP):
@@ -94,8 +98,11 @@ class Pacman(pygame.sprite.Sprite):
                 self.image=Pacman.dirDict[self.nextDir][1]
         (self.row,self.col)=((self.y-65)//30,(self.x-30)//30)
         # Check if Pacman ate energizer
-        if board[self.row][self.col].score>1 or self.frightening==True:
+        if board[self.row][self.col].score>1:
+            self.finishMove(ghosts)
             board[self.row][self.col].score=0
+            self.frighten(ghosts)
+        elif self.frightening==True:
             self.frighten(ghosts)
         self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
         # Check if went through tunnel
@@ -122,21 +129,33 @@ class Pacman(pygame.sprite.Sprite):
             self.dir='stand'
             self.nextDir='stand'
     
+    @staticmethod
+    def resetGhost(ghosts):
+        for ghost in ghosts:
+            ghost.reset=True
+            ghost.x=30+ghost.col*30
+            ghost.y=65+ghost.row*30
+            ghost.counter=0
+            ghost.rect = pygame.Rect(ghost.x-15,ghost.y-15,ghost.size,ghost.size)
+
     def checkForJump(self):
         if self.x<=15:
             self.x=570
         elif self.x>=585:
             self.x=15
        
+    def finishMove(self,ghosts):
+        Pacman.resetGhost(ghosts)
+        for ghost in ghosts:
+            ghost.frightened=True
+
     def frighten(self,ghosts):
-        if self.frightenTime<(200/self.energizer):
+        if self.frightenTime<200:
             self.frightening=True
             self.frightenTime+=1
-            for ghost in ghosts:
-                ghost.frightened=True
         else:
             self.frightenTime=0
             self.frightening=False
-            self.energizer+=1
+            Pacman.resetGhost(ghosts)
             for ghost in ghosts:
                 ghost.frightened=False
