@@ -1,0 +1,142 @@
+import pygame
+
+def notLegalMove(pacman,tiles):
+    collideTile=pygame.sprite.spritecollide(pacman,tiles,False)
+    for tile in collideTile:
+        if type(tile)==WallTile:
+            return True
+    return False
+
+class Pacdot(pygame.sprite.Sprite):
+
+    color=(255,255,0)
+
+    def __init__(self,x,y,size):
+        super().__init__()
+        self.x=x
+        self.y=y
+        self.size=size*4
+        self.image=pygame.Surface((self.size,self.size))
+        self.rect=(self.x-2,self.y-2,5,5)
+        self.image.fill(Pacdot.color)
+
+class Tile(pygame.sprite.Sprite):
+
+    def __init__(self,x,y,score):
+        # x,y being center coordinates
+        super().__init__()
+        self.x,self.y=x,y
+        self.size=30
+        self.score=score
+        self.baseColor=(0,0,0)
+        self.image=pygame.Surface((self.size,self.size))
+        self.image.fill(self.baseColor)
+        self.rect=(x-15,y-15,self.size,self.size)
+
+class WallTile(Tile):
+    def __init__(self,x,y,score,color):
+        super().__init__(x,y,score)
+        self.score=-1
+        self.image.fill(color)
+
+class Pacman(pygame.sprite.Sprite):
+
+    # CLASS ATTRIBUTES
+    image=pygame.image.load('Images/pacman.png')
+    image=pygame.transform.scale(image,(30,30))
+    dirDict={'left': [(-5,0),pygame.transform.flip(image,True,False)],
+            'right':[(5,0),image],
+            'up':[(0,-5),pygame.transform.rotate(image,90)],
+            'down':[(0,5),pygame.transform.rotate(image,-90)],
+            'stand':[(0,0)]}
+
+    def __init__(self,lives,row=15,col=9):
+        super().__init__()
+        self.row,self.col=row,col
+        # (x,y) is center
+        self.x=15+15+30*col
+        self.y=50+15+30*row
+        self.size=30
+        self.dir='left'
+        self.nextDir=self.dir
+        self.image=Pacman.dirDict[self.dir][1]
+        self.rect = pygame.Rect(15+self.col*self.size,30+self.row*self.size, 
+                                self.size,self.size)
+        self.score=0
+        self.frightening=False
+        self.frightenTime=0
+        self.energizer=1
+        self.lives=lives
+        self.dx,self.dy=0,0
+
+    def update(self,keysDown,tiles,board,ghosts):
+        if keysDown(pygame.K_UP):
+            self.nextDir='up'
+        elif keysDown(pygame.K_DOWN): 
+            self.nextDir='down'
+        elif keysDown(pygame.K_LEFT): 
+            self.nextDir='left'
+        elif keysDown(pygame.K_RIGHT): 
+            self.nextDir='right'    
+        self.move(tiles,board,ghosts)
+
+    def move(self,tiles,board,ghosts):
+        (self.dx,self.dy)=Pacman.dirDict[self.nextDir][0]
+        self.x+=self.dx
+        self.y+=self.dy
+        self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+        # if ran into wall, unmake move
+        if notLegalMove(self,tiles):
+            self.unmakeMove(tiles)
+        else:
+            self.dir=self.nextDir
+            if self.nextDir!='stand':
+                self.image=Pacman.dirDict[self.nextDir][1]
+        (self.row,self.col)=((self.y-65)//30,(self.x-30)//30)
+        # Check if Pacman ate energizer
+        if board[self.row][self.col].score>1 or self.frightening==True:
+            board[self.row][self.col].score=0
+            self.frighten(ghosts)
+        self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+        # Check if went through tunnel
+        self.checkForJump()
+
+    def unmakeMove(self,tiles):
+        self.x-=self.dx
+        self.y-=self.dy
+        # try to move in previous dir
+        if self.nextDir!=self.dir:
+            self.dx,self.dy=Pacman.dirDict[self.dir][0]
+            self.x+=self.dx
+            self.y+=self.dy
+            self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+            # if no legal move, 
+            if notLegalMove(self,tiles):
+                self.x-=self.dx
+                self.y-=self.dy
+                self.dx,self.dy=0,0
+                self.dir='stand'
+                self.nextDir='stand'
+        else:
+            self.dx,self.dy=0,0
+            self.dir='stand'
+            self.nextDir='stand'
+    
+    def checkForJump(self):
+        if self.x<=15:
+            self.x=570
+        elif self.x>=585:
+            self.x=15
+       
+    def frighten(self,ghosts):
+        if self.frightenTime<(200/self.energizer):
+            self.frightening=True
+            self.frightenTime+=1
+            for ghost in ghosts:
+                ghost.frightened=True
+        else:
+            self.frightenTime=0
+            self.frightening=False
+            self.energizer+=1
+            for ghost in ghosts:
+                ghost.frightened=False
