@@ -219,19 +219,35 @@ class Game(PygameGame):
         if code==pygame.K_ESCAPE:
             self.init()
         elif self.mode=='play':
-            if code==pygame.K_p:
-                self.gameOn= not self.gameOn
+            if self.pacman.lives>0:
+                if code==pygame.K_p:
+                    self.gameOn= not self.gameOn
         if self.gameOn==False:
             if code==pygame.K_a:
-                self.resetTile()
+                self.resetGhosts()
+                self.resetPacman()
+                # find a queue of tiles to visit without being attacked
+                queue=self.solve()
+                print (queue)
 
-    def resetTile(self):
+    def solve(self):
+        start=(self.pacman.row,pacman.col)
+        tilesToVisit=self.findTilesToVisit()
+        graph=self.getGraph()
+
+    def resetGhosts(self):
         for ghost in self.ghostGroup:
             ghost.reset=True
             ghost.x=30+ghost.col*30
             ghost.y=65+ghost.row*30
             ghost.counter=0
             ghost.rect = pygame.Rect(ghost.x-15,ghost.y-15,ghost.size,ghost.size)
+
+    def resetPacman(self):
+        for pacman in self.pacmanGroup:
+            pacman.x=30+pacman.col*30
+            pacman.y=65+pacman.row*30
+            pacman.rect = pygame.Rect(pacman.x-15,pacman.y-15,pacman.size,pacman.size)
 
     def mousePressed(self,x,y):
         if self.mode=='menu':
@@ -289,8 +305,11 @@ class Game(PygameGame):
         elif 500<=x<=550 and 10<=y<=40:
             self.reflect()
 
+    # check if a player designed map is a legal map
     def isLegalMap(self):
         # check if all empty tiles on board can be visited
+        if self.notSymmetric():
+            return False
         self.graph=self.getGraph()
         tilesToVisit=self.findTilesToVisit()
         start=(self.pacman.row,self.pacman.col)
@@ -298,6 +317,17 @@ class Game(PygameGame):
         legalTiles=findLegalTiles(self.graph,start)
         return legalTiles==tilesToVisit
 
+    def notSymmetric(self):
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            if type(self.board[row][0])!=type(self.board[row][18]):
+                return True
+        for col in range(cols):
+            if type(self.board[0][col])!=type(self.board[20][col]):
+                return True
+        return False
+
+    # returns a dictionary mapping each Tile with its surrounding Tiles
     def getGraph(self):
         graph=dict()
         (rows,cols)=(len(self.board),len(self.board[0]))
@@ -309,6 +339,7 @@ class Game(PygameGame):
                     graph[(row,col)]=adjacentTiles
         return graph
 
+    # provided with (row,col), return a set of all surrounding Tiles
     def getAdjTiles(self,row,col):
         adjacentTiles=set()
         dirs=[(-1,0),(1,0),(0,-1),(0,1)]
@@ -320,13 +351,13 @@ class Game(PygameGame):
                     adjacentTiles.add((nextRow,nextCol))
         return adjacentTiles
 
+    # returns the set of all Tiles
     def findTilesToVisit(self):
         tilesToVisit=set()
-        (rows,cols)=(len(self.board),len(self.board[0]))
-        for row in range(rows):
-            for col in range(cols):
-                if type(self.board[row][col])==Tile:
-                    tilesToVisit.add((row,col))
+        for tile in self.tileGroup:
+            if type(tile)==Tile:
+                (row,col)=tile.row,tile.col
+                tilesToVisit.add((row,col))
         return tilesToVisit
 
     def reflect(self):
@@ -385,6 +416,7 @@ class Game(PygameGame):
             self.mode='play'
             self.gameOn=True
 
+    # main play function
     def playGame(self):
         self.pacmanGroup.update(self.isKeyPressed,self.tileGroup,self.board,
                                     self.ghostGroup)
