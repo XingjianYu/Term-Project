@@ -164,14 +164,14 @@ class Pinky(Ghost):
         # If not frightened, set target to 4 tiles ahead of pacman
         else:
             # since pacman.dir could be 'stand'
-            # can only tell the direction that pacman is facing by its image
-            if pacman.image==pacman.dirDict['up'][1]:
+            # can only tell pacman's direction by its image
+            if pacman.image==pacman.imageDict['up']:
                 return (pacman.row-4,pacman.col)
-            elif pacman.image==pacman.dirDict['down'][1]:
+            elif pacman.image==pacman.imageDict['down']:
                 return (pacman.row+4,pacman.col)
-            elif pacman.image==pacman.dirDict['left'][1]:
+            elif pacman.image==pacman.imageDict['left']:
                 return (pacman.row,pacman.col-4)
-            elif pacman.image==pacman.dirDict['right'][1]:
+            elif pacman.image==pacman.imageDict['right']:
                 return (pacman.row,pacman.col+4)
 
     def update(self,pacman,board):
