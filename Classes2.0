@@ -19,6 +19,8 @@ class Pacdot(pygame.sprite.Sprite):
         self.image=pygame.Surface((self.size,self.size))
         self.rect=(self.x-2,self.y-2,5,5)
         self.image.fill(Pacdot.color)
+        self.row=(self.y-65)//30
+        self.col=(self.x-30)//30
 
 class Tile(pygame.sprite.Sprite):
 
@@ -32,6 +34,7 @@ class Tile(pygame.sprite.Sprite):
         self.image=pygame.Surface((self.size,self.size))
         self.image.fill(self.baseColor)
         self.rect=(x-15,y-15,self.size,self.size)
+        self.row,self.col=(self.y-65)//30,(self.x-30)//30
 
 class WallTile(Tile):
     def __init__(self,x,y,score,color):
@@ -67,11 +70,10 @@ class Pacman(pygame.sprite.Sprite):
         self.frightenTime=0
         self.lives=lives
         self.dx,self.dy=0,0
-        self.dirDict={'left': [(-5,0),Pacman.dirDict['left'][1]],
-            'right':[(5,0),Pacman.dirDict['right'][1]],
-            'up':[(0,-5),Pacman.dirDict['up'][1]],
-            'down':[(0,5),Pacman.dirDict['down'][1]],
-            'stand':[(0,0)]}
+        self.imageDict={'left':Pacman.dirDict['left'][1],
+                        'right':Pacman.dirDict['right'][1],
+                        'up':Pacman.dirDict['up'][1],
+                        'down':Pacman.dirDict['down'][1],}
 
     def update(self,keysDown,tiles,board,ghosts):
         if keysDown(pygame.K_UP):
@@ -100,11 +102,11 @@ class Pacman(pygame.sprite.Sprite):
         # Check if Pacman ate energizer
         if board[self.row][self.col].score>1:
             self.finishMove(ghosts)
-            board[self.row][self.col].score=0
             self.frighten(ghosts)
         elif self.frightening==True:
             self.frighten(ghosts)
         self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+        board[self.row][self.col].score=0
         # Check if went through tunnel
         self.checkForJump()
 
