@@ -7,6 +7,21 @@ def notLegalMove(pacman,tiles):
             return True
     return False
 
+class Block(pygame.sprite.Sprite):
+
+    color=(255,255,255)
+
+    def __init__(self,row,col):
+        super().__init__()
+        self.row=row
+        self.col=col
+        self.size=30
+        self.x=30+self.col*30
+        self.y=65+self.row*30
+        self.image=pygame.Surface((self.size,self.size))
+        self.image.fill(Block.color)
+        self.rect=(self.x-15,self.y-15,30,30)
+
 class Pacdot(pygame.sprite.Sprite):
 
     color=(255,255,0)
