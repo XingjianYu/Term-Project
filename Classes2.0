@@ -60,13 +60,15 @@ class WallTile(Tile):
 class Pacman(pygame.sprite.Sprite):
 
     # CLASS ATTRIBUTES
-    image=pygame.image.load('Images/pacman.png')
+    image=pygame.image.load('Images/pacmanOpen.png')
+    closeImage=pygame.image.load('Images/pacmanClosed.png')
     image=pygame.transform.scale(image,(30,30))
+    closeImage=pygame.transform.scale(closeImage,(30,30))
     dirDict={'left': [(-5,0),pygame.transform.flip(image,True,False)],
             'right':[(5,0),image],
             'up':[(0,-5),pygame.transform.rotate(image,90)],
             'down':[(0,5),pygame.transform.rotate(image,-90)],
-            'stand':[(0,0)]}
+            'stand':[(0,0),image]}
 
     def __init__(self,lives,row=15,col=9):
         super().__init__()
@@ -89,6 +91,10 @@ class Pacman(pygame.sprite.Sprite):
                         'right':Pacman.dirDict['right'][1],
                         'up':Pacman.dirDict['up'][1],
                         'down':Pacman.dirDict['down'][1],}
+        self.closeImageDict={'left':Pacman.closeImage,
+                        'right':Pacman.closeImage,
+                        'up':Pacman.closeImage,
+                        'down':Pacman.closeImage}
 
     def update(self,keysDown,tiles,board,ghosts):
         if keysDown(pygame.K_UP):
@@ -109,10 +115,13 @@ class Pacman(pygame.sprite.Sprite):
         # if ran into wall, unmake move
         if notLegalMove(self,tiles):
             self.unmakeMove(tiles)
+            if self.nextDir!=self.dir:
+                self.image=Pacman.dirDict[self.dir][1]
         else:
             self.dir=self.nextDir
             if self.nextDir!='stand':
-                self.image=Pacman.dirDict[self.nextDir][1]
+                Pacman.dirDict['stand'][1]=Pacman.dirDict[self.dir][1]
+            self.image=Pacman.dirDict[self.nextDir][1]
         (self.row,self.col)=((self.y-65)//30,(self.x-30)//30)
         # Check if Pacman ate energizer
         if board[self.row][self.col].score>1:
@@ -121,9 +130,15 @@ class Pacman(pygame.sprite.Sprite):
         elif self.frightening==True:
             self.frighten(ghosts)
         self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
+        self.eat(board)
         board[self.row][self.col].score=0
         # Check if went through tunnel
         self.checkForJump()
+
+    def eat(self,board):
+        (row,col)=(self.row,self.col)
+        if board[row][col].score>0:
+            self.image=self.closeImage
 
     def unmakeMove(self,tiles):
         self.x-=self.dx
