@@ -68,6 +68,15 @@ def isLegalTile(row,col):
     return (row,col) not in {(15,9),(8,7),(8,8),(8,9),(8,10),(8,11),
     (9,7),(9,8),(9,9),(9,10),(9,11),(10,7),(10,8),(10,9),(10,10),(10,11)}
 
+# readFile and writeFile functions are cited from F15 15112 course notes online
+def readFile(path):
+    with open(path, "rt") as f:
+        return f.read()
+
+def writeFile(path, contents):
+    with open(path, "wt") as f:
+        f.write(contents)
+
 ######################################################
 ############ Game ####################################
 ######################################################
@@ -225,11 +234,11 @@ class Game(PygameGame):
             if self.pacman.lives>0:
                 if code==pygame.K_p:
                     self.gameOn= not self.gameOn
-                    self.bestPath=[]
                     if self.gameOn==True:
                         self.highlight=False
         if self.gameOn==False:
             if code==pygame.K_a:
+                self.bestPath=[]
                 self.giveHint()
                 
     def giveHint(self):
@@ -243,6 +252,7 @@ class Game(PygameGame):
         self.setHintBlocks()
 
     def setHintBlocks(self):
+        self.blockGroup=pygame.sprite.Group()
         for (row,col) in self.bestPath[1:]:
             block=Block(row,col)
             self.blockGroup.add(block)
@@ -356,11 +366,13 @@ class Game(PygameGame):
                 self.tileGroup.add(self.board[row][col])
    
     def chooseDesign(self,x,y):
+        if self.illegalMap==True:
+            self.illegalMap=False
         # pressed on Draw Wall button 
-        if 100<=x<=200 and 10<=y<=40:
+        if 20<=x<=120 and 10<=y<=40:
             self.designButton='draw'
         # pressed on Play button
-        elif 250<=x<=350 and 10<=y<=40:
+        elif 140<=x<=240 and 10<=y<=40:
             if self.isLegalMap():
                 self.wallColor=(0,0,255)
                 self.init(3,self.wallColor,None,self.board)
@@ -370,11 +382,27 @@ class Game(PygameGame):
             else:
                 self.illegalMap=True
         # pressed on Delete Wall button
-        elif 400<=x<=450 and 10<=y<=40:
+        elif 260<=x<=360 and 10<=y<=40:
             self.designButton='delete'
         # pressed Reflect button
-        elif 500<=x<=550 and 10<=y<=40:
+        elif 380<=x<=480 and 10<=y<=40:
             self.reflect()
+        # pressed Save button
+        elif 500<=x<=580 and 10<=y<=40:
+            self.saveMap()
+
+    # save player-designed map to a text file
+    def saveMap(self):
+        contents=''
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                if type(self.board[row][col])==Tile:
+                    contents+='1,'
+                elif type(self.board[row][col])==WallTile:
+                    contents+='0,'
+        contents=contents[:-1]
+        writeFile('PacmanMap.txt',contents)
 
     # check if a player designed map is a legal map
     def isLegalMap(self):
@@ -442,9 +470,9 @@ class Game(PygameGame):
 
     def chooseMode(self,x,y):
         # clicked on choose map
-        if 50<=x<=250 and 200<=y<=400:
+        if 50<=x<=250 and 200<=y<=450:
             self.mode='chooseMap'
-        elif 350<=x<=550 and 200<=y<=400:
+        elif 350<=x<=550 and 200<=y<=300:
             self.mode='designMap'
             # get a blank board with blue walls
             self.board=initBoard(Board().getBoard(),(0,0,255))
@@ -452,6 +480,29 @@ class Game(PygameGame):
             for row in range(len(self.board)):
                 for col in range(len(self.board[0])):
                     self.tileGroup.add(self.board[row][col])
+        elif 350<=x<=550 and 350<=y<=450:
+            self.mode='designMap'
+            self.loadBoard()
+            self.tileGroup=pygame.sprite.Group()
+            for row in range(len(self.board)):
+                for col in range(len(self.board[0])):
+                    self.tileGroup.add(self.board[row][col])
+
+    def loadBoard(self):
+        (rows,cols)=(21,19)
+        contents=readFile('PacmanMap.txt')
+        digits=''
+        for digit in contents.split(','):
+            digits+=digit
+        for row in range(rows):
+            for col in range(cols):
+                digit=digits[19*row+col]
+                (x,y)=(30+30*col,65+30*row)
+                if digit=='0':
+                    tile=WallTile(x,y,-1,(0,0,255))
+                elif digit=='1':
+                    tile=Tile(x,y,1)
+                self.board[row][col]=tile
 
     def chooseFromMenu(self,x,y):
         # clicked on play, start to choose map or design map
@@ -535,12 +586,24 @@ class Game(PygameGame):
         self.tileGroup.draw(screen)
         drawButton=getButton((100,30),(255,255,255))
         playButton=getButton((100,30),(255,255,255))
-        deleteButton=getButton((50,30),(255,255,255))
-        reflectButton=getButton((50,30),(255,255,255))
-        screen.blit(drawButton,(100,10))
-        screen.blit(playButton,(250,10))
-        screen.blit(deleteButton,(400,10))
-        screen.blit(reflectButton,(500,10))
+        deleteButton=getButton((100,30),(255,255,255))
+        reflectButton=getButton((100,30),(255,255,255))
+        saveButton=getButton((80,30),(255,255,255))
+        drawFont=getFont(32,'Draw',(0,0,0))
+        playFont=getFont(32,'Play',(0,0,0))
+        deleteFont=getFont(32,'Erase',(0,0,0))
+        reflectFont=getFont(32,'Reflect',(0,0,0))
+        saveFont=getFont(32,'Save',(0,0,0))
+        screen.blit(drawButton,(20,10))
+        screen.blit(playButton,(140,10))
+        screen.blit(deleteButton,(260,10))
+        screen.blit(reflectButton,(380,10))
+        screen.blit(saveButton,(500,10))
+        screen.blit(drawFont,(20,10))
+        screen.blit(playFont,(140,10))
+        screen.blit(deleteFont,(260,10))
+        screen.blit(reflectFont,(380,10))
+        screen.blit(saveFont,(500,10))
         if self.illegalMap==True:
             illegalMapFont=getFont(60,'Illegal Map',(255,255,255))
             screen.blit(illegalMapFont,(250,350))
@@ -557,14 +620,18 @@ class Game(PygameGame):
         screen.blit(magentaMap,(350,375))
 
     def redrawChooseMode(self,screen):
-        chooseMapButton=getButton((200,200),(255,255,255))
+        chooseMapButton=getButton((200,250),(255,255,255))
         chooseMapFont=getFont(30,'Choose Map',(0,0,0))
         screen.blit(chooseMapButton,(50,250))
-        screen.blit(chooseMapFont,(100,300))
-        designMapButton=getButton((200,200),(255,255,255))
+        screen.blit(chooseMapFont,(100,400))
+        designMapButton=getButton((200,100),(255,255,255))
         designMapFont=getFont(30,'Design Map',(0,0,0))
         screen.blit(designMapButton,(350,250))
         screen.blit(designMapFont,(400,300))
+        loadMapButton=getButton((200,100),(255,255,255))
+        loadMapFont=getFont(30,'Load Saved Map',(0,0,0))
+        screen.blit(loadMapButton,(350,400))
+        screen.blit(loadMapFont,(375,425))
 
     def redrawMenu(self,screen):
         playButton=getButton((200,80),(255,255,255))
