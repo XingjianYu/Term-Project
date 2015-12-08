@@ -113,7 +113,7 @@ class Ghost(pygame.sprite.Sprite):
 
 class Blinky(Ghost):
 
-    def __init__(self):
+    def __init__(self,mode):
         super().__init__()
         self.image=Ghost.images[3]
         self.row=7
@@ -122,18 +122,20 @@ class Blinky(Ghost):
         self.y=50+15+30*self.row
         self.rect=(self.x-15,self.y-15,self.size,self.size)
         self.outOfCell=True
+        self.mode=mode
 
     def setTargetTile(self,pacman):
-        # If ghosts frightened, move randomly
-        if self.frightened==True:
-            targetRow=random.randint(0,21)
-            targetCol=random.randint(0,19)
-            return (targetRow,targetCol)
-        # If not frightened, Blinky chases Pacman directly
-        else:
-            Blinky.row=self.row
-            Blinky.col=self.col
-            return (pacman.row,pacman.col)
+        if self.mode=='easy' or self.mode=='hard' or self.mode=='challenge':
+            # If ghosts frightened, move randomly
+            if self.frightened==True:
+                targetRow=random.randint(0,21)
+                targetCol=random.randint(0,19)
+                return (targetRow,targetCol)
+            # If not frightened, Blinky chases Pacman directly
+            else:
+                Blinky.row=self.row
+                Blinky.col=self.col
+                return (pacman.row,pacman.col)
 
     def update(self,pacman,board):
         if self.frightened==False:
@@ -148,7 +150,7 @@ class Blinky(Ghost):
 
 class Pinky(Ghost):
 
-    def __init__(self):
+    def __init__(self,mode):
         super().__init__()
         self.image=Ghost.images[1]
         self.row=9
@@ -157,27 +159,37 @@ class Pinky(Ghost):
         self.y=50+15+30*self.row
         self.rect=(self.x-15,self.y-15,self.size,self.size)
         self.outOfCell=False
+        self.mode=mode
 
     def setTargetTile(self,pacman):
-        # If ghosts frightened, move randomly
-        if self.frightened==True:
+        if self.mode=='easy' or self.mode=='hard':
             targetRow=random.randint(0,21)
             targetCol=random.randint(0,19)
             return (targetRow,targetCol)
-        elif self.outOfCell==False:
-            return (7,9)
-        # If not frightened, set target to 4 tiles ahead of pacman
-        else:
-            # since pacman.dir could be 'stand'
-            # can only tell pacman's direction by its image
-            if pacman.image==pacman.imageDict['up']:
-                return (pacman.row-4,pacman.col)
-            elif pacman.image==pacman.imageDict['down']:
-                return (pacman.row+4,pacman.col)
-            elif pacman.image==pacman.imageDict['left']:
-                return (pacman.row,pacman.col-4)
-            elif pacman.image==pacman.imageDict['right']:
-                return (pacman.row,pacman.col+4)
+        elif self.mode=='challenge':
+            # If ghosts frightened, move randomly
+            if self.frightened==True:
+                targetRow=random.randint(0,21)
+                targetCol=random.randint(0,19)
+                return (targetRow,targetCol)
+            elif self.outOfCell==False:
+                return (7,9)
+            # If not frightened, set target to 4 tiles ahead of pacman
+            else:
+                # since pacman.dir could be 'stand'
+                # can only tell pacman's direction by its image
+                if (pacman.image==pacman.imageDict['up'] or 
+                    pacman.image==pacman.closeImageDict['up']):
+                    return (pacman.row-4,pacman.col)
+                elif (pacman.image==pacman.imageDict['down'] or 
+                    pacman.image==pacman.closeImageDict['down']):
+                    return (pacman.row+4,pacman.col)
+                elif (pacman.image==pacman.imageDict['left'] or 
+                    pacman.image==pacman.closeImageDict['left']):
+                    return (pacman.row,pacman.col-4)
+                elif (pacman.image==pacman.imageDict['right'] or 
+                    pacman.image==pacman.closeImageDict['right']):
+                    return (pacman.row,pacman.col+4)
 
     def update(self,pacman,board):
         if self.frightened==False:
@@ -192,7 +204,7 @@ class Pinky(Ghost):
 
 class Inky(Ghost):
 
-    def __init__(self):
+    def __init__(self,mode):
         super().__init__()
         self.image=Ghost.images[2]
         self.row=9
@@ -201,17 +213,23 @@ class Inky(Ghost):
         self.y=50+15+30*self.row
         self.rect=(self.x-15,self.y-15,self.size,self.size)
         self.outOfCell=False
+        self.mode=mode
 
     def setTargetTile(self,pacman):
-        # If ghosts frightened, move randomly
-        if self.frightened==True:
+        if self.mode=='easy':
             targetRow=random.randint(0,21)
             targetCol=random.randint(0,19)
             return (targetRow,targetCol)
-        # If not frightened, chase pacman based on the pos of Blinky
-        else:
-            return ((pacman.row*2-Ghost.blinkyRow),
-                    (pacman.col*2-Ghost.blinkyCol))
+        elif self.mode=='challenge' or self.mode=='hard':
+            # If ghosts frightened, move randomly
+            if self.frightened==True:
+                targetRow=random.randint(0,21)
+                targetCol=random.randint(0,19)
+                return (targetRow,targetCol)
+            # If not frightened, chase pacman based on the pos of Blinky
+            else:
+                return ((pacman.row*2-Ghost.blinkyRow),
+                        (pacman.col*2-Ghost.blinkyCol))
 
     def update(self,pacman,board):
         if self.frightened==False:
@@ -226,7 +244,7 @@ class Inky(Ghost):
 
 class Clide(Ghost):
 
-    def __init__(self):
+    def __init__(self,mode):
         super().__init__()
         self.image=Ghost.images[0]
         self.row=9
@@ -235,21 +253,27 @@ class Clide(Ghost):
         self.y=50+15+30*self.row
         self.rect=(self.x-15,self.y-15,self.size,self.size)
         self.outOfCell=False
+        self.mode=mode
 
     def setTargetTile(self,pacman):
-        # If ghosts frightened, move randomly
-        if self.frightened==True:
+        if self.mode=='hard' or self.mode=='easy':
             targetRow=random.randint(0,21)
             targetCol=random.randint(0,19)
             return (targetRow,targetCol)
-        # If not frightened, chase when out of 8 tiles, scatter otherwise
-        else:
-            if abs(self.row-pacman.row)+abs(self.col-pacman.col)>8:
-                return (pacman.row,pacman.col)
-            # When scattering, set target tile to the lower left corner outside 
-            # of board
+        elif self.mode=='challenge':
+            # If ghosts frightened, move randomly
+            if self.frightened==True:
+                targetRow=random.randint(0,21)
+                targetCol=random.randint(0,19)
+                return (targetRow,targetCol)
+            # If not frightened, chase when out of 8 tiles, scatter otherwise
             else:
-                return (22,0)
+                if abs(self.row-pacman.row)+abs(self.col-pacman.col)>8:
+                    return (pacman.row,pacman.col)
+                # When scattering, set target tile to the lower left corner outside 
+                # of board
+                else:
+                    return (22,0)
 
     def update(self,pacman,board):
         if self.frightened==False:
