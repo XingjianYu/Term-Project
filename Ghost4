@@ -48,6 +48,11 @@ class Ghost(pygame.sprite.Sprite):
             self.outOfCell=True
         self.checkForJump()
 
+    def step(self,pacman,board):
+        (self.targetRow,self.targetCol)=self.setTargetTile(pacman)
+        (drow,dcol)=self.findDir(self.targetRow,self.targetCol,board)
+        return (drow,dcol)
+
     def getNormalMove(self,pacman,board):
         if self.counter%6==0 or self.reset==True:
             self.reset=False
