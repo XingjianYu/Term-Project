@@ -168,6 +168,7 @@ class Game(PygameGame):
     purpleMapImage=pygame.transform.scale(pygame.image.load('Images/purpleMap.png'),(200,300))
     cyanMapImage=pygame.transform.scale(pygame.image.load('Images/cyanMap.png'),(200,300))
     magentaMapImage=pygame.transform.scale(pygame.image.load('Images/magentaMap.png'),(200,300))
+    menuDisplay=pygame.transform.scale(pygame.image.load('Images/menuDisplay.png'),(350,100))
     
     def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,boardInit=PygameGame.blueBoard):
         # if start of game, set mode to menu
@@ -185,6 +186,7 @@ class Game(PygameGame):
         # init pacman
         self.initPacman(pacmanLives)
         # init ghosts
+        self.ghostMode='easy'
         self.initGhosts()
         self.blockGroup=pygame.sprite.Group()
         self.designButton=None
@@ -218,13 +220,13 @@ class Game(PygameGame):
 
     def initGhosts(self):
         self.ghostGroup=pygame.sprite.Group()
-        self.blinky=Blinky()
+        self.blinky=Blinky(self.ghostMode)
         self.ghostGroup.add(self.blinky)
-        self.pinky=Pinky()
+        self.pinky=Pinky(self.ghostMode)
         self.ghostGroup.add(self.pinky)
-        self.inky=Inky()
+        self.inky=Inky(self.ghostMode)
         self.ghostGroup.add(self.inky)
-        self.clide=Clide()
+        self.clide=Clide(self.ghostMode)
         self.ghostGroup.add(self.clide)
     
     def keyPressed(self, code, mod):
@@ -521,21 +523,25 @@ class Game(PygameGame):
             self.wallColor=(0,0,255)
             self.init(3,self.wallColor,None,None,PygameGame.blueBoard)
             self.mode='play'
+            self.ghostMode='easy'
             self.gameOn=True
         elif 350<=x<=550 and 25<=y<=325:
             self.wallColor=(128,0,0)
             self.init(3,self.wallColor,None,None,PygameGame.purpleBoard)
             self.mode='play'
+            self.ghostMode='hard'
             self.gameOn=True
         elif 50<=x<=250 and 375<=y<=675:
-            self.wallColor=(0,255,255)
-            self.init(3,self.wallColor,None,None,PygameGame.cyanBoard)
-            self.mode='play'
-            self.gameOn=True
-        elif 350<=x<=550 and 375<=y<=675:
             self.wallColor=(255,0,255)
             self.init(3,self.wallColor,None,None,PygameGame.magentaBoard)
             self.mode='play'
+            self.ghostMode='hard'
+            self.gameOn=True
+        elif 350<=x<=550 and 375<=y<=675:
+            self.wallColor=(0,255,255)
+            self.init(3,self.wallColor,None,None,PygameGame.cyanBoard)
+            self.mode='play'
+            self.ghostMode='challenge'
             self.gameOn=True
 
     # main play function
@@ -554,7 +560,7 @@ class Game(PygameGame):
                                                  self.ghostGroup,False)
         for ghost in collideGhost:
             if ghost.frightened==True:
-                ghost.__init__()
+                ghost.__init__(ghost.mode)
                 ghost.frightened=False
             else:
                 self.pacman.lives-=1
@@ -616,8 +622,8 @@ class Game(PygameGame):
         magentaMap=Game.magentaMapImage
         screen.blit(blueMap,(50,25))
         screen.blit(purpleMap,(350,25))
-        screen.blit(cyanMap,(50,375))
-        screen.blit(magentaMap,(350,375))
+        screen.blit(magentaMap,(50,375))
+        screen.blit(cyanMap,(350,375))
 
     def redrawChooseMode(self,screen):
         chooseMapButton=getButton((200,250),(255,255,255))
@@ -646,6 +652,7 @@ class Game(PygameGame):
         quitFont=getFont(60,'Quit',(0,0,0))
         screen.blit(quitButton,(200,610))
         screen.blit(quitFont,(250,630))
+        screen.blit(Game.menuDisplay,(125,150))
 
     def redrawGame(self,screen):
         self.tileGroup.draw(screen)
