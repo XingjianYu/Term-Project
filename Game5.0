@@ -48,7 +48,7 @@ def getButton(size,color=None):
     return button
 
 def getFont(size,text,color):
-    font=pygame.font.SysFont(None,size)
+    font=pygame.font.SysFont('comicsansms',size)
     font=font.render(text,True,color)
     return font
 
@@ -170,7 +170,8 @@ class Game(PygameGame):
     magentaMapImage=pygame.transform.scale(pygame.image.load('Images/magentaMap.png'),(200,300))
     menuDisplay=pygame.transform.scale(pygame.image.load('Images/menuDisplay.png'),(350,100))
     
-    def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,boardInit=PygameGame.blueBoard):
+    def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,
+        boardInit=PygameGame.blueBoard):
         # if start of game, set mode to menu
         if pacmanLives==3:
             self.mode='menu'
@@ -191,6 +192,7 @@ class Game(PygameGame):
         self.blockGroup=pygame.sprite.Group()
         self.designButton=None
         self.illegalMap=False
+        # if self.highlight is True, means is giving hint
         self.highlight=False
 
     def initPacman(self,pacmanLives):
@@ -261,15 +263,18 @@ class Game(PygameGame):
                 
     def solvePacman(self,graph,start):
         # return the first step of the best path within 5 moves of pacman
-        counter=5
+        counter=4
         moves=self.findMoves(graph,start,counter)
         bestMove=None
         bestScore=None
         for move in moves:
-            score=self.findScore(move)
-            if bestScore==None or score>bestScore:
-                bestScore=score
-                bestMove=move
+            score=self.findScore(move,graph)
+            if score!=None:
+                if bestScore==None or score>bestScore:
+                    bestScore=score
+                    bestMove=move
+            else:
+                continue
         return bestMove if bestScore!=0 else None
 
     def findMoves(self,graph,start,counter):
@@ -283,16 +288,26 @@ class Game(PygameGame):
                     trail.append([start]+path)
             return trail  
 
-    def findScore(self,move):
+    def findScore(self,move,graph):
         self.testPacman=copy.deepcopy(self.pacman)
         self.testGhostGroup=copy.deepcopy(self.ghostGroup)
         pathDict=self.findPaths(move)
         score=0
         self.testBoard=copy.deepcopy(self.board)
-        # if ran into ghost in move, return 0
+        # if ran into ghost in move, return None
         for i in range(len(move)):
             if move[i] in pathDict[i]:
-                return 0
+                return None # return None
+        # The change of total distance from all ghosts is subtracted
+        start=move[0]
+        end=move[-1]
+        for i in range(len(self.testGhostGroup)):
+            startGoal=pathDict[1][i]
+            endGoal=pathDict[4][i]
+            startDis=len(self.getPath(start,startGoal,graph))
+            endDis=len(self.getPath(end,endGoal,graph))
+            disScore=endDis-startDis
+            score+=disScore
         # else evaluate the move based on pacdots eaten along the way,
         # distance from ghost, distance from next pacdot
         # early AI only evaluates on pacdots eaten
@@ -302,14 +317,28 @@ class Game(PygameGame):
                 score+=1
                 self.testBoard[row][col].score=0
         return score
-        
+    
+    # finds a path between two (row,col)'s
+    # getPath function is adapted from original code by Edd Mann
+    # http://eddmann.com/posts/depth-first-search-and-breadth-first-search-in-python/
+    def getPath(self,start,goal,graph):
+        queue = [(start, [start])]
+        while queue:
+            (vertex, path) = queue.pop(0)
+            for next in graph[vertex] - set(path):
+                if next == goal:
+                    return path + [next]
+                else:
+                    queue.append((next, path + [next]))
+
+    # for a move, build a dict with keys being (row,col) of pacman,
+    # values being the list of (row,col) of all ghosts
     def findPaths(self,move):
-        # for a move, build a dict with keys being (row,col) of pacman,
-        # values being the list of (row,col) of all ghosts
         pathDict=dict()
         for step in range(len(move)):
+            # have to use a list here since ghosts might have same pos
             pathDict[step]=[]
-        for i in range(len(move)):
+        for i in range(1,len(move)):
             step=move[i]
             (self.testPacman.row,self.testPacman.col)=step
             for ghost in self.testGhostGroup:
@@ -472,9 +501,10 @@ class Game(PygameGame):
 
     def chooseMode(self,x,y):
         # clicked on choose map
-        if 50<=x<=250 and 200<=y<=450:
+        if 50<=x<=250 and 250<=y<=500:
             self.mode='chooseMap'
-        elif 350<=x<=550 and 200<=y<=300:
+        # clicked on design map
+        elif 350<=x<=550 and 250<=y<=350:
             self.mode='designMap'
             # get a blank board with blue walls
             self.board=initBoard(Board().getBoard(),(0,0,255))
@@ -482,7 +512,7 @@ class Game(PygameGame):
             for row in range(len(self.board)):
                 for col in range(len(self.board[0])):
                     self.tileGroup.add(self.board[row][col])
-        elif 350<=x<=550 and 350<=y<=450:
+        elif 350<=x<=550 and 400<=y<=500:
             self.mode='designMap'
             self.loadBoard()
             self.tileGroup=pygame.sprite.Group()
@@ -590,16 +620,16 @@ class Game(PygameGame):
 
     def redrawDesignMap(self,screen):
         self.tileGroup.draw(screen)
-        drawButton=getButton((100,30),(255,255,255))
-        playButton=getButton((100,30),(255,255,255))
-        deleteButton=getButton((100,30),(255,255,255))
-        reflectButton=getButton((100,30),(255,255,255))
-        saveButton=getButton((80,30),(255,255,255))
-        drawFont=getFont(32,'Draw',(0,0,0))
-        playFont=getFont(32,'Play',(0,0,0))
-        deleteFont=getFont(32,'Erase',(0,0,0))
-        reflectFont=getFont(32,'Reflect',(0,0,0))
-        saveFont=getFont(32,'Save',(0,0,0))
+        drawButton=getButton((100,30),(0,0,0))
+        playButton=getButton((100,30),(0,0,0))
+        deleteButton=getButton((100,30),(0,0,0))
+        reflectButton=getButton((100,30),(0,0,0))
+        saveButton=getButton((80,30),(0,0,0))
+        drawFont=getFont(24,'Draw',(255,255,255))
+        playFont=getFont(24,'Play',(255,255,255))
+        deleteFont=getFont(24,'Erase',(255,255,255))
+        reflectFont=getFont(24,'Reflect',(255,255,255))
+        saveFont=getFont(24,'Save',(255,255,255))
         screen.blit(drawButton,(20,10))
         screen.blit(playButton,(140,10))
         screen.blit(deleteButton,(260,10))
@@ -626,32 +656,32 @@ class Game(PygameGame):
         screen.blit(cyanMap,(350,375))
 
     def redrawChooseMode(self,screen):
-        chooseMapButton=getButton((200,250),(255,255,255))
-        chooseMapFont=getFont(30,'Choose Map',(0,0,0))
+        chooseMapButton=getButton((200,250),(0,0,0))
+        chooseMapFont=getFont(30,'Choose Map',(255,255,255))
         screen.blit(chooseMapButton,(50,250))
-        screen.blit(chooseMapFont,(100,400))
-        designMapButton=getButton((200,100),(255,255,255))
-        designMapFont=getFont(30,'Design Map',(0,0,0))
+        screen.blit(chooseMapFont,(70,350))
+        designMapButton=getButton((200,100),(0,0,0))
+        designMapFont=getFont(30,'Design Map',(255,255,255))
         screen.blit(designMapButton,(350,250))
-        screen.blit(designMapFont,(400,300))
-        loadMapButton=getButton((200,100),(255,255,255))
-        loadMapFont=getFont(30,'Load Saved Map',(0,0,0))
+        screen.blit(designMapFont,(375,280))
+        loadMapButton=getButton((200,100),(0,0,0))
+        loadMapFont=getFont(30,'Load Map',(255,255,255))
         screen.blit(loadMapButton,(350,400))
-        screen.blit(loadMapFont,(375,425))
+        screen.blit(loadMapFont,(390,430))
 
     def redrawMenu(self,screen):
-        playButton=getButton((200,80),(255,255,255))
-        playFont=getFont(60,'Play',(0,0,0))
+        playButton=getButton((200,80),(0,0,0))
+        playFont=getFont(42,'Play',(255,255,255))
         screen.blit(playButton,(200,410))
-        screen.blit(playFont,(250,430))
-        helpButton=getButton((200,80),(255,255,255))
-        helpFont=getFont(60,'Help',(0,0,0))
+        screen.blit(playFont,(250,420))
+        helpButton=getButton((200,80),(0,0,0))
+        helpFont=getFont(42,'Help',(255,255,255))
         screen.blit(helpButton,(200,510))
-        screen.blit(helpFont,(250,530))
-        quitButton=getButton((200,80),(255,255,255))
-        quitFont=getFont(60,'Quit',(0,0,0))
+        screen.blit(helpFont,(250,520))
+        quitButton=getButton((200,80),(0,0,0))
+        quitFont=getFont(42,'Quit',(255,255,255))
         screen.blit(quitButton,(200,610))
-        screen.blit(quitFont,(250,630))
+        screen.blit(quitFont,(250,620))
         screen.blit(Game.menuDisplay,(125,150))
 
     def redrawGame(self,screen):
