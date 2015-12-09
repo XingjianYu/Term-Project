@@ -200,6 +200,7 @@ class Game(PygameGame):
         self.illegalMap=False
         # if self.highlight is True, means is giving hint
         self.highlight=False
+        self.hintFollowed=0
 
     def initPacman(self,pacmanLives):
         self.pacmanGroup=pygame.sprite.Group()
@@ -250,7 +251,22 @@ class Game(PygameGame):
             if code==pygame.K_a:
                 self.bestPath=[]
                 self.giveHint()
-                
+            if self.highlight==True and code==pygame.K_s:
+                self.followHint()
+
+
+
+
+
+
+    def followHint(self):
+        pass
+
+
+
+
+
+
     def giveHint(self):
         self.resetGhosts()
         self.resetPacman()
@@ -263,8 +279,9 @@ class Game(PygameGame):
 
     def setHintBlocks(self):
         self.blockGroup=pygame.sprite.Group()
-        for (row,col) in self.bestPath[1:]:
-            block=Block(row,col)
+        for i in range(1,len(self.bestPath)):
+            (row,col)=self.bestPath[i]
+            block=Block(row,col,i)
             self.blockGroup.add(block)
                 
     def solvePacman(self,graph,start):
@@ -317,7 +334,7 @@ class Game(PygameGame):
         # else evaluate the move based on pacdots eaten along the way,
         # distance from ghost, distance from next pacdot
         # early AI only evaluates on pacdots eaten
-        for i in range(len(move)):
+        for i in range(1,len(move)):
             (row,col)=move[i]
             if self.testBoard[row][col].score>0:
                 score+=4
@@ -720,6 +737,11 @@ class Game(PygameGame):
             self.tileGroup.draw(screen)
             if self.highlight==True:
                 self.blockGroup.draw(screen)
+                for block in self.blockGroup:
+                    num=block.num
+                    numFont=getFont(16,str(num),(0,0,0))
+                    (x,y)=(block.x,block.y)
+                    screen.blit(numFont,(x-5,y-5))
             self.pacdotGroup.draw(screen)
             self.pacmanGroup.draw(screen)
             self.ghostGroup.draw(screen)
