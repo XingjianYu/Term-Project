@@ -168,11 +168,12 @@ class Game(PygameGame):
     purpleMapImage=pygame.transform.scale(pygame.image.load('Images/purpleMap.png'),(200,300))
     cyanMapImage=pygame.transform.scale(pygame.image.load('Images/cyanMap.png'),(200,300))
     magentaMapImage=pygame.transform.scale(pygame.image.load('Images/magentaMap.png'),(200,300))
-    menuDisplay=pygame.transform.scale(pygame.image.load('Images/menuDisplay.png'),(350,100))
-    lockImage=pygame.transform.scale(pygame.image.load('Images/lock.png'),(350,100))
+    menuTop=pygame.transform.scale(pygame.image.load('Images/menuDisplay.png'),(350,100))
+    menuBottom=pygame.transform.scale(pygame.image.load('Images/menuGhosts.png'),(250,100))
+    lockImage=pygame.transform.scale(pygame.image.load('Images/lock.png'),(100,100))
     unlockedMode={'easy'}
     
-    def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,
+    def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,score=0,
         boardInit=PygameGame.blueBoard):
         # if start of game, set mode to menu
         if pacmanLives==3:
@@ -188,6 +189,7 @@ class Game(PygameGame):
         self.initPacdots(prev) 
         # init pacman
         self.initPacman(pacmanLives)
+        self.pacman.score=score
         # init ghosts
         self.ghostMode='easy'
         self.initGhosts()
@@ -554,28 +556,28 @@ class Game(PygameGame):
         if 50<=x<=250 and 25<=y<=325:
             if 'easy' in Game.unlockedMode:
                 self.wallColor=(0,0,255)
-                self.init(3,self.wallColor,None,None,PygameGame.blueBoard)
+                self.init(3,self.wallColor,None,None,0,PygameGame.blueBoard)
                 self.mode='play'
                 self.ghostMode='easy'
                 self.gameOn=True
         elif 350<=x<=550 and 25<=y<=325:
             if 'hard' in Game.unlockedMode:
                 self.wallColor=(128,0,0)
-                self.init(3,self.wallColor,None,None,PygameGame.purpleBoard)
+                self.init(3,self.wallColor,None,None,0,PygameGame.purpleBoard)
                 self.mode='play'
                 self.ghostMode='hard'
                 self.gameOn=True
         elif 50<=x<=250 and 375<=y<=675:
             if 'hard' in Game.unlockedMode:
                 self.wallColor=(255,0,255)
-                self.init(3,self.wallColor,None,None,PygameGame.magentaBoard)
+                self.init(3,self.wallColor,None,None,0,PygameGame.magentaBoard)
                 self.mode='play'
                 self.ghostMode='hard'
                 self.gameOn=True
         elif 350<=x<=550 and 375<=y<=675:
             if 'challenge' in Game.unlockedMode:
                 self.wallColor=(0,255,255)
-                self.init(3,self.wallColor,None,None,PygameGame.cyanBoard)
+                self.init(3,self.wallColor,None,None,0,PygameGame.cyanBoard)
                 self.mode='play'
                 self.ghostMode='challenge'
                 self.gameOn=True
@@ -598,12 +600,14 @@ class Game(PygameGame):
             if ghost.frightened==True:
                 ghost.__init__(ghost.mode)
                 ghost.frightened=False
+                self.pacman.score+=200
             else:
                 self.pacman.lives-=1
                 if self.pacman.lives==0:
                     self.gameOn=False
                 else:
-                    self.init(self.pacman.lives,self.wallColor,self.pacdotGroup,self.board)
+                    self.init(self.pacman.lives,self.wallColor,
+                              self.pacdotGroup,self.board,self.pacman.score)
 
     def wonGame(self):
         self.gameOn=False
@@ -668,6 +672,11 @@ class Game(PygameGame):
         screen.blit(purpleMap,(350,25))
         screen.blit(magentaMap,(50,375))
         screen.blit(cyanMap,(350,375))
+        if 'hard' not in Game.unlockedMode:
+            screen.blit(Game.lockImage,(400,150))
+            screen.blit(Game.lockImage,(100,475))
+        if 'challenge' not in Game.unlockedMode:
+            screen.blit(Game.lockImage,(400,475))
 
     def redrawChooseMode(self,screen):
         chooseMapButton=getButton((200,250),(0,0,0))
@@ -696,19 +705,27 @@ class Game(PygameGame):
         quitFont=getFont(42,'Quit',(255,255,255))
         screen.blit(quitButton,(200,610))
         screen.blit(quitFont,(250,620))
-        screen.blit(Game.menuDisplay,(125,150))
+        screen.blit(Game.menuTop,(125,125))
+        screen.blit(Game.menuBottom,(175,275))
 
     def redrawGame(self,screen):
-        self.tileGroup.draw(screen)
-        if self.highlight==True:
-            self.blockGroup.draw(screen)
-        self.pacdotGroup.draw(screen)
-        self.pacmanGroup.draw(screen)
-        self.ghostGroup.draw(screen)
+        if self.pacman.lives!=0:
+            self.tileGroup.draw(screen)
+            if self.highlight==True:
+                self.blockGroup.draw(screen)
+            self.pacdotGroup.draw(screen)
+            self.pacmanGroup.draw(screen)
+            self.ghostGroup.draw(screen)
+            lives=getFont(24,'Lives=%d'%self.pacman.lives,(255,255,255))
+            screen.blit(lives,(500,10))
+            score=getFont(24,'Score:%d'%self.pacman.score,(255,255,255))
+            screen.blit(score,(50,10))
         if self.pacman.lives==0:
-            self.font=pygame.font.SysFont(None,60)
-            self.font=self.font.render('You lost!', True, (255,255,0))
-            screen.blit(self.font,(300,300))
+            font=pygame.font.SysFont(None,60)
+            font=font.render('Game Over!', True, (255,255,0))
+            screen.blit(font,(190,300))
+            restart=getFont(32,'Press ESC to restart',(255,255,0))
+            screen.blit(restart,(150,350))
         pygame.display.flip()
 
     def redrawHelp(self,screen):
