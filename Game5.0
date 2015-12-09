@@ -169,6 +169,8 @@ class Game(PygameGame):
     cyanMapImage=pygame.transform.scale(pygame.image.load('Images/cyanMap.png'),(200,300))
     magentaMapImage=pygame.transform.scale(pygame.image.load('Images/magentaMap.png'),(200,300))
     menuDisplay=pygame.transform.scale(pygame.image.load('Images/menuDisplay.png'),(350,100))
+    lockImage=pygame.transform.scale(pygame.image.load('Images/lock.png'),(350,100))
+    unlockedMode={'easy'}
     
     def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,
         boardInit=PygameGame.blueBoard):
@@ -550,29 +552,33 @@ class Game(PygameGame):
 
     def chooseMap(self,x,y):
         if 50<=x<=250 and 25<=y<=325:
-            self.wallColor=(0,0,255)
-            self.init(3,self.wallColor,None,None,PygameGame.blueBoard)
-            self.mode='play'
-            self.ghostMode='easy'
-            self.gameOn=True
+            if 'easy' in Game.unlockedMode:
+                self.wallColor=(0,0,255)
+                self.init(3,self.wallColor,None,None,PygameGame.blueBoard)
+                self.mode='play'
+                self.ghostMode='easy'
+                self.gameOn=True
         elif 350<=x<=550 and 25<=y<=325:
-            self.wallColor=(128,0,0)
-            self.init(3,self.wallColor,None,None,PygameGame.purpleBoard)
-            self.mode='play'
-            self.ghostMode='hard'
-            self.gameOn=True
+            if 'hard' in Game.unlockedMode:
+                self.wallColor=(128,0,0)
+                self.init(3,self.wallColor,None,None,PygameGame.purpleBoard)
+                self.mode='play'
+                self.ghostMode='hard'
+                self.gameOn=True
         elif 50<=x<=250 and 375<=y<=675:
-            self.wallColor=(255,0,255)
-            self.init(3,self.wallColor,None,None,PygameGame.magentaBoard)
-            self.mode='play'
-            self.ghostMode='hard'
-            self.gameOn=True
+            if 'hard' in Game.unlockedMode:
+                self.wallColor=(255,0,255)
+                self.init(3,self.wallColor,None,None,PygameGame.magentaBoard)
+                self.mode='play'
+                self.ghostMode='hard'
+                self.gameOn=True
         elif 350<=x<=550 and 375<=y<=675:
-            self.wallColor=(0,255,255)
-            self.init(3,self.wallColor,None,None,PygameGame.cyanBoard)
-            self.mode='play'
-            self.ghostMode='challenge'
-            self.gameOn=True
+            if 'challenge' in Game.unlockedMode:
+                self.wallColor=(0,255,255)
+                self.init(3,self.wallColor,None,None,PygameGame.cyanBoard)
+                self.mode='play'
+                self.ghostMode='challenge'
+                self.gameOn=True
 
     # main play function
     def playGame(self):
@@ -584,7 +590,7 @@ class Game(PygameGame):
         self.ghostGroup.update(self.pacman,self.board)
         # check for win
         if checkForWin(self.pacdotGroup)==True:
-            self.gameOn=False
+            self.wonGame()
         # check for loss
         collideGhost=pygame.sprite.spritecollide(self.pacman,
                                                  self.ghostGroup,False)
@@ -598,6 +604,14 @@ class Game(PygameGame):
                     self.gameOn=False
                 else:
                     self.init(self.pacman.lives,self.wallColor,self.pacdotGroup,self.board)
+
+    def wonGame(self):
+        self.gameOn=False
+        self.mode='chooseMap'
+        if self.ghostMode=='easy':
+            Game.unlockedMode.add('hard')
+        elif self.ghostMode=='hard':
+            Game.unlockedMode.add('challenge')
 
     def timerFired(self, dt):
         if self.mode=='play':
