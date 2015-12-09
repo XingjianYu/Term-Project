@@ -123,6 +123,9 @@ class Pacman(pygame.sprite.Sprite):
                 Pacman.dirDict['stand'][1]=Pacman.dirDict[self.dir][1]
             self.image=Pacman.dirDict[self.nextDir][1]
         (self.row,self.col)=((self.y-65)//30,(self.x-30)//30)
+        # check if eating pacdots
+        if board[self.row][self.col].score>0:
+            self.score+=10
         # Check if Pacman ate energizer
         if board[self.row][self.col].score>1:
             self.finishMove(ghosts)
