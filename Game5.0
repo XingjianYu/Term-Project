@@ -171,6 +171,8 @@ class Game(PygameGame):
     menuTop=pygame.transform.scale(pygame.image.load('Images/menuDisplay.png'),(350,100))
     menuBottom=pygame.transform.scale(pygame.image.load('Images/menuGhosts.png'),(250,100))
     lockImage=pygame.transform.scale(pygame.image.load('Images/lock.png'),(100,100))
+    helpLetterImage=pygame.image.load('Images/helpLetter.png')
+    howToPlayImage=pygame.image.load('Images/howToPlay.png')
     unlockedMode={'easy'}
     
     def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,score=0,
@@ -318,7 +320,7 @@ class Game(PygameGame):
         for i in range(len(move)):
             (row,col)=move[i]
             if self.testBoard[row][col].score>0:
-                score+=1
+                score+=4
                 self.testBoard[row][col].score=0
         return score
     
@@ -374,6 +376,9 @@ class Game(PygameGame):
             self.chooseMap(x,y)
         elif self.mode=='designMap':
             self.chooseDesign(x,y)
+        elif self.mode=='help':
+            if 425<=x<=575 and 625<=y<=670:
+                self.mode='showHowToPlay'
 
     def mouseDrag(self,x,y):
         super().mouseDrag(x,y)
@@ -635,6 +640,8 @@ class Game(PygameGame):
             self.redrawHelp(screen)
         elif self.mode=='designMap':
             self.redrawDesignMap(screen)
+        elif self.mode=='showHowToPlay':
+            self.redrawHowToPlay(screen)
 
     def redrawDesignMap(self,screen):
         self.tileGroup.draw(screen)
@@ -680,11 +687,11 @@ class Game(PygameGame):
 
     def redrawChooseMode(self,screen):
         chooseMapButton=getButton((200,250),(0,0,0))
-        chooseMapFont=getFont(30,'Choose Map',(255,255,255))
+        chooseMapFont=getFont(30,'Adventure',(255,255,255))
         screen.blit(chooseMapButton,(50,250))
         screen.blit(chooseMapFont,(70,350))
         designMapButton=getButton((200,100),(0,0,0))
-        designMapFont=getFont(30,'Design Map',(255,255,255))
+        designMapFont=getFont(30,'Design',(255,255,255))
         screen.blit(designMapButton,(350,250))
         screen.blit(designMapFont,(375,280))
         loadMapButton=getButton((200,100),(0,0,0))
@@ -729,6 +736,15 @@ class Game(PygameGame):
         pygame.display.flip()
 
     def redrawHelp(self,screen):
-        pass
-     
-Game(600,700).run() 
+        screen.blit(Game.helpLetterImage,(0,0))
+        howToPlayButton=getButton((150,45),(255,255,255))
+        screen.blit(howToPlayButton,(425,625))
+        howToPlayFont=getFont(24,'How To Play',(0,0,0))
+        screen.blit(howToPlayFont,(430,630))
+        pygame.display.flip()
+
+    def redrawHowToPlay(self,screen):
+        screen.blit(Game.howToPlayImage,(0,0))
+        pygame.display.flip()
+
+Game(600,700).run()
