@@ -201,6 +201,8 @@ class Game(PygameGame):
         # if self.highlight is True, means is giving hint
         self.highlight=False
         self.hintFollowed=0
+        self.noFileSaved=False
+        self.noPath=False
 
     def initPacman(self,pacmanLives):
         self.pacmanGroup=pygame.sprite.Group()
@@ -251,31 +253,19 @@ class Game(PygameGame):
             if code==pygame.K_a:
                 self.bestPath=[]
                 self.giveHint()
-            if self.highlight==True and code==pygame.K_s:
-                self.followHint()
-
-
-
-
-
-
-    def followHint(self):
-        pass
-
-
-
-
-
 
     def giveHint(self):
-        self.resetGhosts()
-        self.resetPacman()
-        start=(self.pacman.row,self.pacman.col)
-        graph=self.getGraph()
-        # nextMove is a tuple of (drow,dcol) for optimal next move
-        self.bestPath=self.solvePacman(graph,start)
-        self.highlight=True
-        self.setHintBlocks()
+        try:
+            self.resetGhosts()
+            self.resetPacman()
+            start=(self.pacman.row,self.pacman.col)
+            graph=self.getGraph()
+            # nextMove is a tuple of (drow,dcol) for optimal next move
+            self.bestPath=self.solvePacman(graph,start)
+            self.highlight=True
+            self.setHintBlocks()
+        except:
+            self.noPath=True
 
     def setHintBlocks(self):
         self.blockGroup=pygame.sprite.Group()
@@ -286,7 +276,7 @@ class Game(PygameGame):
                 
     def solvePacman(self,graph,start):
         # return the first step of the best path within 5 moves of pacman
-        counter=4
+        counter=3
         moves=self.findMoves(graph,start,counter)
         bestMove=None
         bestScore=None
@@ -298,7 +288,7 @@ class Game(PygameGame):
                     bestMove=move
             else:
                 continue
-        return bestMove if bestScore!=0 else None
+        return bestMove if bestScore!=None else None
 
     def findMoves(self,graph,start,counter):
         if counter==0:
@@ -320,13 +310,13 @@ class Game(PygameGame):
         # if ran into ghost in move, return None
         for i in range(len(move)):
             if move[i] in pathDict[i]:
-                return None # return None
+                return None
         # The change of total distance from all ghosts is subtracted
-        start=move[0]
+        start=move[1]
         end=move[-1]
         for i in range(len(self.testGhostGroup)):
             startGoal=pathDict[1][i]
-            endGoal=pathDict[4][i]
+            endGoal=pathDict[3][i]
             startDis=len(self.getPath(start,startGoal,graph))
             endDis=len(self.getPath(end,endGoal,graph))
             disScore=endDis-startDis
@@ -526,25 +516,32 @@ class Game(PygameGame):
                     self.updateTileGroup()
 
     def chooseMode(self,x,y):
-        # clicked on choose map
-        if 50<=x<=250 and 250<=y<=500:
-            self.mode='chooseMap'
-        # clicked on design map
-        elif 350<=x<=550 and 250<=y<=350:
-            self.mode='designMap'
-            # get a blank board with blue walls
-            self.board=initBoard(Board().getBoard(),(0,0,255))
-            self.tileGroup=pygame.sprite.Group()
-            for row in range(len(self.board)):
-                for col in range(len(self.board[0])):
-                    self.tileGroup.add(self.board[row][col])
-        elif 350<=x<=550 and 400<=y<=500:
-            self.mode='designMap'
-            self.loadBoard()
-            self.tileGroup=pygame.sprite.Group()
-            for row in range(len(self.board)):
-                for col in range(len(self.board[0])):
-                    self.tileGroup.add(self.board[row][col])
+        if self.noFileSaved==False:
+            # clicked on choose map
+            if 50<=x<=250 and 250<=y<=500:
+                self.mode='chooseMap'
+            # clicked on design map
+            elif 350<=x<=550 and 250<=y<=350:
+                self.mode='designMap'
+                # get a blank board with blue walls
+                self.board=initBoard(Board().getBoard(),(0,0,255))
+                self.tileGroup=pygame.sprite.Group()
+                for row in range(len(self.board)):
+                    for col in range(len(self.board[0])):
+                        self.tileGroup.add(self.board[row][col])
+            elif 350<=x<=550 and 400<=y<=500:
+                try:
+                    self.loadBoard()
+                    self.mode='designMap'
+                    self.tileGroup=pygame.sprite.Group()
+                    for row in range(len(self.board)):
+                        for col in range(len(self.board[0])):
+                            self.tileGroup.add(self.board[row][col])
+                except:
+                    self.noFileSaved=True
+        else:
+            self.mode='chooseMode'
+            self.noFileSaved=False
 
     def loadBoard(self):
         (rows,cols)=(21,19)
@@ -683,8 +680,8 @@ class Game(PygameGame):
         screen.blit(reflectFont,(380,10))
         screen.blit(saveFont,(500,10))
         if self.illegalMap==True:
-            illegalMapFont=getFont(60,'Illegal Map',(255,255,255))
-            screen.blit(illegalMapFont,(250,350))
+            illegalMapFont=getFont(48,'Illegal Map',(255,255,255))
+            screen.blit(illegalMapFont,(200,300))
         pygame.display.flip()
 
     def redrawChooseMap(self,screen):
@@ -703,19 +700,23 @@ class Game(PygameGame):
             screen.blit(Game.lockImage,(400,475))
 
     def redrawChooseMode(self,screen):
-        chooseMapButton=getButton((200,250),(0,0,0))
-        chooseMapFont=getFont(30,'Adventure',(255,255,255))
-        screen.blit(chooseMapButton,(50,250))
-        screen.blit(chooseMapFont,(70,350))
-        designMapButton=getButton((200,100),(0,0,0))
-        designMapFont=getFont(30,'Design',(255,255,255))
-        screen.blit(designMapButton,(350,250))
-        screen.blit(designMapFont,(375,280))
-        loadMapButton=getButton((200,100),(0,0,0))
-        loadMapFont=getFont(30,'Load Map',(255,255,255))
-        screen.blit(loadMapButton,(350,400))
-        screen.blit(loadMapFont,(390,430))
-
+        if self.noFileSaved==True:
+            noFileSavedFont=getFont(32,'No Map Saved!',(255,255,0))
+            screen.blit(noFileSavedFont,(200,300))
+        else:
+            chooseMapButton=getButton((200,250),(0,0,0))
+            chooseMapFont=getFont(30,'Adventure',(255,255,255))
+            screen.blit(chooseMapButton,(50,250))
+            screen.blit(chooseMapFont,(70,350))
+            designMapButton=getButton((200,100),(0,0,0))
+            designMapFont=getFont(30,'Design',(255,255,255))
+            screen.blit(designMapButton,(350,250))
+            screen.blit(designMapFont,(375,280))
+            loadMapButton=getButton((200,100),(0,0,0))
+            loadMapFont=getFont(30,'Load Map',(255,255,255))
+            screen.blit(loadMapButton,(350,400))
+            screen.blit(loadMapFont,(370,430))
+        
     def redrawMenu(self,screen):
         playButton=getButton((200,80),(0,0,0))
         playFont=getFont(42,'Play',(255,255,255))
@@ -736,12 +737,16 @@ class Game(PygameGame):
         if self.pacman.lives!=0:
             self.tileGroup.draw(screen)
             if self.highlight==True:
-                self.blockGroup.draw(screen)
-                for block in self.blockGroup:
-                    num=block.num
-                    numFont=getFont(16,str(num),(0,0,0))
-                    (x,y)=(block.x,block.y)
-                    screen.blit(numFont,(x-5,y-5))
+                if self.noPath==False:
+                    self.blockGroup.draw(screen)
+                    for block in self.blockGroup:
+                        num=block.num
+                        numFont=getFont(16,str(num),(0,0,0))
+                        (x,y)=(block.x,block.y)
+                        screen.blit(numFont,(x-5,y-5))
+                else:
+                    noHint=getFont(32,'No hint available!',(255,255,0))
+                    screen.blit(noHint,(250,300))
             self.pacdotGroup.draw(screen)
             self.pacmanGroup.draw(screen)
             self.ghostGroup.draw(screen)
