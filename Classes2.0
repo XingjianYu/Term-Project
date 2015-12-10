@@ -11,10 +11,11 @@ class Block(pygame.sprite.Sprite):
 
     color=(255,255,255)
 
-    def __init__(self,row,col):
+    def __init__(self,row,col,num):
         super().__init__()
         self.row=row
         self.col=col
+        self.num=num
         self.size=30
         self.x=30+self.col*30
         self.y=65+self.row*30
@@ -127,11 +128,11 @@ class Pacman(pygame.sprite.Sprite):
         if board[self.row][self.col].score>0:
             self.score+=10
         # Check if Pacman ate energizer
-        if board[self.row][self.col].score>1:
-            self.finishMove(ghosts)
+        if board[self.row][self.col].score>1 or self.frightening==True:
             self.frighten(ghosts)
-        elif self.frightening==True:
-            self.frighten(ghosts)
+            if board[self.row][self.col].score>1:
+                self.finishMove(ghosts)
+                self.frightenTime=0
         self.rect = pygame.Rect(self.x-15,self.y-15,self.size,self.size)
         self.eat(board)
         board[self.row][self.col].score=0
