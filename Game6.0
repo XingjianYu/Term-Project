@@ -1,0 +1,922 @@
+import pygame
+import copy
+from Ghost4 import Ghost
+from Ghost4 import Blinky
+from Ghost4 import Pinky
+from Ghost4 import Inky
+from Ghost4 import Clide
+from Classes3 import Pacdot
+from Classes3 import Tile
+from Classes3 import WallTile
+from Classes3 import Pacman
+from Classes3 import Block
+from Board import Board
+from Board import BlueBoard
+from Board import PurpleBoard
+from Board import CyanBoard
+from Board import MagentaBoard
+
+# from Ghost import Ghost
+''' The class PygameGame  and class Game are cited from 
+    https://github.com/LBPeraza/Pygame-Asteroids
+    This framework is originally created by Lukas Peraza for 
+    15-112 F15 Pygame Optional Lecture, 11/11/15
+'''
+######################################################
+############ HELPER FUNCTIONS ########################
+######################################################
+def initBoard(board,color):
+    newBoard=copy.deepcopy(board)
+    rows,cols,size,xMargin,yMargin=21,19,30,30,65
+    for row in range(rows):
+        for col in range(cols):
+            x = xMargin+col*size
+            y = yMargin+row*size
+            if board[row][col]<0:
+                newBoard[row][col]=WallTile(x,y,board[row][col],color)
+            elif board[row][col]>=0:
+                newBoard[row][col]=Tile(x,y,board[row][col])
+    return newBoard
+
+def checkForWin(pacdots):
+    return len(pacdots)==0
+
+def getButton(size,color=None):
+    button=pygame.Surface(size)
+    if color!=None:
+        button.fill(color)
+    return button
+
+def getFont(size,text,color):
+    font=pygame.font.SysFont('comicsansms',size)
+    font=font.render(text,True,color)
+    return font
+
+# findLegalTile function is adapted from original code by Edd Mann
+# http://eddmann.com/posts/depth-first-search-and-breadth-first-search-in-python/
+
+def findLegalTiles(graph,start):
+    visited, stack = set(), [start]
+    while stack:
+        vertex = stack.pop()
+        if vertex not in visited:
+            visited.add(vertex)
+            stack.extend(graph[vertex] - visited)
+    return visited
+
+def isLegalTile(row,col):
+    return (row,col) not in {(15,9),(8,7),(8,8),(8,9),(8,10),(8,11),
+    (9,7),(9,8),(9,9),(9,10),(9,11),(10,7),(10,8),(10,9),(10,10),(10,11)}
+
+# readFile and writeFile functions are cited from F15 15112 course notes online
+# original code is wriiten by David Kosbie
+def readFile(path):
+    with open(path, "rt") as f:
+        return f.read()
+
+def writeFile(path, contents):
+    with open(path, "wt") as f:
+        f.write(contents)
+
+######################################################
+############ Game ####################################
+######################################################
+
+class PygameGame(object):
+
+    blueBoard=BlueBoard().getBoard()
+    purpleBoard=PurpleBoard().getBoard()
+    cyanBoard=CyanBoard().getBoard()
+    magentaBoard=MagentaBoard().getBoard()
+
+    def init(self):
+        pass
+
+    def mousePressed(self, x, y):
+        pass
+
+    def mouseReleased(self, x, y):
+        pass
+
+    def mouseMotion(self, x, y):
+        pass
+
+    def mouseDrag(self, x, y):
+        pass
+
+    def keyPressed(self, keyCode, modifier):
+        pass
+
+    def keyReleased(self, keyCode, modifier):
+        pass
+
+    def timerFired(self, dt):
+        pass
+
+    def redrawAll(self, screen):
+        pass
+
+    def isKeyPressed(self, key):
+        ''' return whether a specific key is being held '''
+        return self._keys.get(key, False)
+
+    def __init__(self, width=600, height=700, fps=25, title="Pacman"):
+        self.width = width
+        self.height = height
+        self.fps = fps
+        self.title = title
+        self.bgColor = (0, 0, 0)
+        self.blueBoard=PygameGame.blueBoard
+        self.purpleBoard=PygameGame.purpleBoard
+        self.cyanBoard=PygameGame.cyanBoard
+        self.magentaBoard=PygameGame.magentaBoard
+        pygame.init()
+
+    def run(self):
+        clock = pygame.time.Clock()
+        screen = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption(self.title)
+        self._keys = dict()
+        self.init()
+        self.playing = True
+        while self.playing:
+            time = clock.tick(self.fps)
+            self.timerFired(time)
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    self._keys[event.key] = True
+                    self.keyPressed(event.key, event.mod)
+                elif event.type == pygame.KEYUP:
+                    self._keys[event.key] = False
+                    self.keyReleased(event.key, event.mod)
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    self.mousePressed(*(event.pos))
+                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    self.mouseReleased(*(event.pos))
+                elif (event.type == pygame.MOUSEMOTION and
+                      event.buttons[0] == 1):
+                    self.mouseDrag(*(event.pos))
+                elif event.type == pygame.QUIT:
+                    self.playing = False
+            screen.fill(self.bgColor)
+            self.redrawAll(screen)
+            pygame.display.flip()
+        pygame.quit()
+
+class Game(PygameGame):
+
+    blueMapImage=pygame.transform.scale(pygame.image.load('Images/blueMap.png'),(200,300))
+    purpleMapImage=pygame.transform.scale(pygame.image.load('Images/purpleMap.png'),(200,300))
+    cyanMapImage=pygame.transform.scale(pygame.image.load('Images/cyanMap.png'),(200,300))
+    magentaMapImage=pygame.transform.scale(pygame.image.load('Images/magentaMap.png'),(200,300))
+    menuTop=pygame.transform.scale(pygame.image.load('Images/menuDisplay.png'),(350,100))
+    menuBottom=pygame.transform.scale(pygame.image.load('Images/menuGhosts.png'),(250,100))
+    lockImage=pygame.transform.scale(pygame.image.load('Images/lock.png'),(100,100))
+    helpLetterImage=pygame.image.load('Images/helpLetter.png')
+    howToPlayImage=pygame.image.load('Images/howToPlay.png')
+    unlockedMode={'easy'}
+    
+    def init(self,pacmanLives=3,color=(0,0,255),prev=None,board=None,score=0,
+        boardInit=PygameGame.blueBoard):
+        # if start of game, set mode to menu
+        if pacmanLives==3:
+            self.mode='menu'
+            self.gameOn=False
+        if board!=None:
+            self.board=board
+        else:
+            self.board=initBoard(boardInit,color)
+        # init tiles
+        self.initTiles()
+        # init pacdots
+        self.initPacdots(prev) 
+        # init pacman
+        self.initPacman(pacmanLives)
+        self.pacman.score=score
+        # init ghosts
+        self.ghostMode='easy'
+        self.initGhosts()
+        self.blockGroup=pygame.sprite.Group()
+        self.designButton=None
+        self.illegalMap=False
+        # if self.highlight is True, means is giving hint
+        self.highlight=False
+        self.noFileSaved=False
+        self.noHint=False
+
+    def initPacman(self,pacmanLives):
+        self.pacmanGroup=pygame.sprite.Group()
+        self.pacman=Pacman(pacmanLives)
+        self.pacmanGroup.add(self.pacman)
+
+    def initTiles(self):
+        self.tileGroup=pygame.sprite.Group()
+        for row in range(len(self.board)):
+            for col in range(len(self.board[0])):
+                self.tileGroup.add(self.board[row][col])
+
+    def initPacdots(self,prev):
+        if prev==None:
+            self.pacdotGroup=pygame.sprite.Group()
+            for row in range(len(self.board)):
+                for col in range(len(self.board[0])):
+                    # The x,y coordinates should be centered
+                    if self.board[row][col].score>0:
+                        pacdot=Pacdot(self.board[row][col].x,
+                                      self.board[row][col].y,
+                                      self.board[row][col].score)
+                        self.pacdotGroup.add(pacdot)
+        else:
+            self.pacdotGroup=prev
+
+    def initGhosts(self):
+        self.ghostGroup=pygame.sprite.Group()
+        self.blinky=Blinky(self.ghostMode)
+        self.ghostGroup.add(self.blinky)
+        self.pinky=Pinky(self.ghostMode)
+        self.ghostGroup.add(self.pinky)
+        self.inky=Inky(self.ghostMode)
+        self.ghostGroup.add(self.inky)
+        self.clide=Clide(self.ghostMode)
+        self.ghostGroup.add(self.clide)
+    
+    def keyPressed(self, code, mod):
+        if code==pygame.K_ESCAPE:
+            self.init()
+        elif self.mode=='play':
+            if self.pacman.lives>0:
+                if code==pygame.K_p:
+                    self.noHint=False
+                    self.gameOn= not self.gameOn
+                    if self.gameOn==True:
+                        self.highlight=False
+        elif self.mode=='multiPlayer':
+            if code==pygame.K_p:
+                self.gameOn= not self.gameOn
+        if self.gameOn==False:
+            if self.mode=='play':
+                if code==pygame.K_a:
+                    try:
+                        self.bestPath=[]
+                        self.giveHint()
+                    except:
+                        self.noHint=True
+                        
+    def giveHint(self):
+        self.resetGhosts()
+        self.resetPacman()
+        start=(self.pacman.row,self.pacman.col)
+        graph=self.getGraph()
+        # nextMove is a tuple of (drow,dcol) for optimal next move
+        self.bestPath=self.solvePacman(graph,start)
+        if self.bestPath!=None:
+            self.highlight=True
+            self.setHintBlocks()
+        else:
+            self.noHint=True
+        
+    def setHintBlocks(self):
+        self.blockGroup=pygame.sprite.Group()
+        for i in range(1,len(self.bestPath)):
+            (row,col)=self.bestPath[i]
+            block=Block(row,col,i)
+            self.blockGroup.add(block)
+                
+    def solvePacman(self,graph,start):
+        # return the first step of the best path within 5 moves of pacman
+        counter=3
+        moves=self.findMoves(graph,start,counter)
+        bestMove=None
+        bestScore=None
+        for move in moves:
+            score=self.findScore(move,graph)
+            if score!=None:
+                if bestScore==None or score>bestScore:
+                    bestScore=score
+                    bestMove=move
+            else:
+                continue
+        return bestMove if bestScore!=None else None
+
+    def findMoves(self,graph,start,counter):
+        if counter==0:
+            return [[start]]
+        else:
+            trail=[]
+            for (nextRow,nextCol) in graph[start]:
+                newTrail=self.findMoves(graph,(nextRow,nextCol),counter-1)
+                for path in newTrail:
+                    trail.append([start]+path)
+            return trail  
+
+    def findScore(self,move,graph):
+        self.testPacman=copy.deepcopy(self.pacman)
+        self.testGhostGroup=copy.deepcopy(self.ghostGroup)
+        pathDict=self.findPaths(move)
+        score=0
+        self.testBoard=copy.deepcopy(self.board)
+        # if ran into ghost in move, return None
+        for i in range(len(move)):
+            if move[i] in pathDict[i]:
+                return None # return None
+        # The change of total distance from all ghosts is subtracted
+        start=move[0]
+        end=move[-1]
+        for i in range(len(self.testGhostGroup)):
+            startGoal=pathDict[1][i]
+            endGoal=pathDict[3][i]
+            startDis=len(self.getPath(start,startGoal,graph))
+            endDis=len(self.getPath(end,endGoal,graph))
+            disScore=endDis-startDis
+            score+=disScore
+        # else evaluate the move based on pacdots eaten along the way,
+        # distance from ghost, distance from next pacdot
+        # early AI only evaluates on pacdots eaten
+        for i in range(1,len(move)):
+            (row,col)=move[i]
+            if self.testBoard[row][col].score>0:
+                score+=4
+                self.testBoard[row][col].score=0
+        return score
+    
+    # finds a path between two (row,col)'s
+    # getPath function is adapted from original code by Edd Mann
+    # http://eddmann.com/posts/depth-first-search-and-breadth-first-search-in-python/
+    def getPath(self,start,goal,graph):
+        queue = [(start, [start])]
+        while queue:
+            (vertex, path) = queue.pop(0)
+            for next in graph[vertex] - set(path):
+                if next == goal:
+                    return path + [next]
+                else:
+                    queue.append((next, path + [next]))
+
+    # for a move, build a dict with keys being (row,col) of pacman,
+    # values being the list of (row,col) of all ghosts
+    def findPaths(self,move):
+        pathDict=dict()
+        for step in range(len(move)):
+            # have to use a list here since ghosts might have same pos
+            pathDict[step]=[]
+        for i in range(1,len(move)):
+            step=move[i]
+            (self.testPacman.row,self.testPacman.col)=step
+            for ghost in self.testGhostGroup:
+                (drow,dcol)=ghost.step(self.testPacman,self.board)
+                (ghost.row,ghost.col)=(ghost.row+drow,ghost.col+dcol)
+                pathDict[i].append((ghost.row,ghost.col))
+        return pathDict
+
+    def resetGhosts(self):
+        for ghost in self.ghostGroup:
+            ghost.reset=True
+            ghost.x=30+ghost.col*30
+            ghost.y=65+ghost.row*30
+            ghost.counter=0
+            ghost.rect = pygame.Rect(ghost.x-15,ghost.y-15,ghost.size,ghost.size)
+
+    def resetPacman(self):
+        for pacman in self.pacmanGroup:
+            pacman.x=30+pacman.col*30
+            pacman.y=65+pacman.row*30
+            pacman.rect = pygame.Rect(pacman.x-15,pacman.y-15,pacman.size,pacman.size)
+
+    def mousePressed(self,x,y):
+        if self.mode=='menu':
+            self.chooseFromMenu(x,y)
+        elif self.mode=='chooseMode':
+            self.chooseMode(x,y)
+        elif self.mode=='chooseMap':
+            self.chooseMap(x,y)
+        elif self.mode=='designMap':
+            self.chooseDesign(x,y)
+        elif self.mode=='help':
+            if 425<=x<=575 and 625<=y<=670:
+                self.mode='showHowToPlay'
+
+    def mouseDrag(self,x,y):
+        super().mouseDrag(x,y)
+        if self.mode=='designMap':
+            (row,col)=((y-50)//30,(x-15)//30)
+            if isLegalTile(row,col):
+                (rows,cols)=(len(self.board),len(self.board[0]))
+                if self.designButton=='draw':
+                    if 0<=row<rows and 0<=col<cols:
+                        (x,y)=(30+30*col,65+30*row)
+                        self.board[row][col]=WallTile(x,y,-1,(0,0,255))
+                        self.updateTileGroup()
+                elif self.designButton=='delete':
+                    if 0<=row<rows and 0<=col<cols:
+                        (x,y)=(30+30*col,65+30*row)
+                        if (row,col) not in {(8,9),(9,8),(9,9),(9,10)}:
+                            self.board[row][col]=Tile(x,y,1)
+                            self.updateTileGroup()
+
+    def updateTileGroup(self):
+        self.tileGroup=pygame.sprite.Group()
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                self.tileGroup.add(self.board[row][col])
+   
+    def chooseDesign(self,x,y):
+        if self.illegalMap==True:
+            self.illegalMap=False
+        # pressed on Draw Wall button 
+        if 20<=x<=120 and 10<=y<=40:
+            self.designButton='draw'
+        # pressed on Play button
+        elif 140<=x<=240 and 10<=y<=40:
+            if self.isLegalMap():
+                self.wallColor=(0,0,255)
+                self.init(3,self.wallColor,None,self.board)
+                self.mode='play'
+                self.gameOn=True
+                self.designButton=None
+            else:
+                self.illegalMap=True
+        # pressed on Delete Wall button
+        elif 260<=x<=360 and 10<=y<=40:
+            self.designButton='delete'
+        # pressed Reflect button
+        elif 380<=x<=480 and 10<=y<=40:
+            self.reflect()
+        # pressed Save button
+        elif 500<=x<=580 and 10<=y<=40:
+            self.saveMap()
+
+    # save player-designed map to a text file
+    def saveMap(self):
+        contents=''
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                if type(self.board[row][col])==Tile:
+                    contents+='1,'
+                elif type(self.board[row][col])==WallTile:
+                    contents+='0,'
+        contents=contents[:-1]
+        writeFile('PacmanMap.txt',contents)
+
+    # check if a player designed map is a legal map
+    def isLegalMap(self):
+        # check if all empty tiles on board can be visited
+        if self.notSymmetric():
+            return False
+        self.graph=self.getGraph()
+        tilesToVisit=self.findTilesToVisit()
+        start=(self.pacman.row,self.pacman.col)
+        legalTiles=set()
+        legalTiles=findLegalTiles(self.graph,start)
+        return legalTiles==tilesToVisit
+
+    def notSymmetric(self):
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            if type(self.board[row][0])!=type(self.board[row][18]):
+                return True
+        for col in range(cols):
+            if type(self.board[0][col])!=type(self.board[20][col]):
+                return True
+        return False
+
+    # returns a dictionary mapping each Tile with its surrounding Tiles
+    def getGraph(self):
+        graph=dict()
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                # if tile is Tile, record all of its adjacent Tiles
+                if type(self.board[row][col])==Tile:
+                    adjacentTiles=self.getAdjTiles(row,col)
+                    graph[(row,col)]=adjacentTiles
+        return graph
+
+    # provided with (row,col), return a set of all surrounding Tiles
+    def getAdjTiles(self,row,col):
+        adjacentTiles=set()
+        dirs=[(-1,0),(1,0),(0,-1),(0,1)]
+        for (drow,dcol) in dirs:
+            nextRow,nextCol=row+drow,col+dcol
+            # check if nextRow and nextCol is within bounds
+            if 0<=nextRow<=20 and 0<=nextCol<=18:
+                if type(self.board[nextRow][nextCol])==Tile:
+                    adjacentTiles.add((nextRow,nextCol))
+        return adjacentTiles
+
+    # returns the set of all Tiles
+    def findTilesToVisit(self):
+        tilesToVisit=set()
+        for tile in self.tileGroup:
+            if type(tile)==Tile:
+                (row,col)=tile.row,tile.col
+                tilesToVisit.add((row,col))
+        return tilesToVisit
+
+    def reflect(self):
+        (rows,cols)=(len(self.board),len(self.board[0]))
+        for row in range(rows):
+            for col in range(cols):
+                if type(self.board[row][col])==WallTile:
+                    # To reflect, paired cols sum to 18
+                    self.board[row][18-col]=WallTile(30+30*(18-col),65+30*row,-1,(0,0,255))
+                    self.updateTileGroup()
+
+    def initMultiPacman(self):
+        self.Player1=Pacman(3,15,8,'left')
+        self.Player2=Pacman(3,15,10,'right')
+        self.pacmanGroup=pygame.sprite.Group()
+        self.pacmanGroup.add(self.Player1)
+        self.pacmanGroup.add(self.Player2)
+
+    def initMultiGame(self):
+        self.board=initBoard(PygameGame.blueBoard,(0,0,255))
+        self.initTiles()
+        self.initPacdots(None)
+        self.initGhosts()
+        self.initMultiPacman()
+        self.Player1Score,self.Player2Score=0,0
+
+    def chooseMultiGame(self):
+        self.wallColor=(0,0,255)
+        self.initMultiGame()
+        self.gameOn=True
+        self.mode='multiPlayer'
+
+    def chooseMode(self,x,y):
+        if self.noFileSaved==False:
+            # clicked on choose map
+            if 50<=x<=250 and 250<=y<=350:
+                self.mode='chooseMap'
+            if 50<=x<=250 and 400<=y<=500:
+                self.chooseMultiGame()
+            # clicked on design map
+            elif 350<=x<=550 and 250<=y<=350:
+                self.mode='designMap'
+                # get a blank board with blue walls
+                self.board=initBoard(Board().getBoard(),(0,0,255))
+                self.tileGroup=pygame.sprite.Group()
+                for row in range(len(self.board)):
+                    for col in range(len(self.board[0])):
+                        self.tileGroup.add(self.board[row][col])
+            elif 350<=x<=550 and 400<=y<=500:
+                try:
+                    self.loadBoard()
+                    self.mode='designMap'
+                    self.tileGroup=pygame.sprite.Group()
+                    for row in range(len(self.board)):
+                        for col in range(len(self.board[0])):
+                            self.tileGroup.add(self.board[row][col])
+                except:
+                    self.noFileSaved=True
+        else:
+            self.mode='chooseMode'
+            self.noFileSaved=False
+
+    def loadBoard(self):
+        (rows,cols)=(21,19)
+        contents=readFile('PacmanMap.txt')
+        digits=''
+        for digit in contents.split(','):
+            digits+=digit
+        for row in range(rows):
+            for col in range(cols):
+                digit=digits[19*row+col]
+                (x,y)=(30+30*col,65+30*row)
+                if digit=='0':
+                    tile=WallTile(x,y,-1,(0,0,255))
+                elif digit=='1':
+                    tile=Tile(x,y,1)
+                self.board[row][col]=tile
+
+    def chooseFromMenu(self,x,y):
+        # clicked on play, start to choose map or design map
+        if 200<=x<=400 and 410<=y<=490:
+            self.mode='chooseMode'
+            self.gameOn=True
+        # clicked on help
+        elif 200<=x<=400 and 510<=y<=590:
+            self.mode='help'
+        # clicked on quit
+        elif 200<=x<=400 and 610<=y<=690:
+            self.playing=False
+
+    def chooseMap(self,x,y):
+        if 50<=x<=250 and 25<=y<=325:
+            if 'easy' in Game.unlockedMode:
+                self.wallColor=(0,0,255)
+                self.init(3,self.wallColor,None,None,0,PygameGame.blueBoard)
+                self.mode='play'
+                self.ghostMode='easy'
+                self.gameOn=True
+        elif 350<=x<=550 and 25<=y<=325:
+            if 'hard' in Game.unlockedMode:
+                self.wallColor=(128,0,0)
+                self.init(3,self.wallColor,None,None,0,PygameGame.purpleBoard)
+                self.mode='play'
+                self.ghostMode='hard'
+                self.gameOn=True
+        elif 50<=x<=250 and 375<=y<=675:
+            if 'hard' in Game.unlockedMode:
+                self.wallColor=(255,0,255)
+                self.init(3,self.wallColor,None,None,0,PygameGame.magentaBoard)
+                self.mode='play'
+                self.ghostMode='hard'
+                self.gameOn=True
+        elif 350<=x<=550 and 375<=y<=675:
+            if 'challenge' in Game.unlockedMode:
+                self.wallColor=(0,255,255)
+                self.init(3,self.wallColor,None,None,0,PygameGame.cyanBoard)
+                self.mode='play'
+                self.ghostMode='challenge'
+                self.gameOn=True
+
+    # main play function
+    def playGame(self):
+        self.pacmanGroup.update(self.isKeyPressed,self.tileGroup,self.board,
+                                    self.ghostGroup)
+        # check eaten pacdots
+        eatenPacdot=pygame.sprite.spritecollide(self.pacman,
+                                                self.pacdotGroup,True)
+        self.ghostGroup.update(self.pacman,self.board)
+        # check for win
+        if checkForWin(self.pacdotGroup)==True:
+            self.wonGame()
+        # check for loss
+        collideGhost=pygame.sprite.spritecollide(self.pacman,
+                                                 self.ghostGroup,False)
+        for ghost in collideGhost:
+            if ghost.frightened==True:
+                ghost.__init__(ghost.mode)
+                ghost.frightened=False
+                self.pacman.score+=200
+            else:
+                self.pacman.lives-=1
+                if self.pacman.lives==0:
+                    self.gameOn=False
+                else:
+                    self.init(self.pacman.lives,self.wallColor,
+                              self.pacdotGroup,self.board,self.pacman.score)
+
+    def checkForMultiWin(self):
+        if self.Player1.lives==0 or self.Player2.lives==0:
+            return True
+        if len(self.pacdotGroup)==0:
+            return True
+
+    def wonMultiGame(self):
+        self.gameOn=False
+        self.mode='multiPlayerWon'
+        if self.Player1.score>self.Player2.score:
+            self.winner='Player1 won!'
+        elif self.Player1.score<self.Player2.score:
+            self.winner='Player2 won!'
+        else:
+            self.winner='Tie'
+
+    def ghostCollide(self,collideGhost,num):
+        for ghost in collideGhost:
+            if ghost.frightened==True:
+                ghost.__init__(ghost.mode)
+                ghost.frightened=False
+                if num==1:
+                    self.Player1.score+=200
+                else:
+                    self.Player2.score+=200
+            else:
+                if num==1:
+                    self.Player1.lives-=1
+                elif num==2:
+                    self.Player2.lives-=1
+                if self.Player1.lives==0 or self.Player2.lives==0:
+                    self.wonMultiGame()
+                else:
+                    if num==1:
+                        score=self.Player1.score
+                        self.pacmanGroup=pygame.sprite.Group()
+                        self.Player1=Pacman(self.Player1.lives,15,8,'left')
+                        self.Player1.score=score
+                        self.pacmanGroup.add(self.Player1)
+                        self.pacmanGroup.add(self.Player2)
+                    elif num==2:
+                        score=self.Player2.score
+                        self.pacmanGroup=pygame.sprite.Group()
+                        self.Player2=Pacman(self.Player2.lives,15,10,'right')
+                        self.Player2.score=score
+                        self.pacmanGroup.add(self.Player1)
+                        self.pacmanGroup.add(self.Player2)
+
+    def playMultiGame(self):
+        self.Player1.update(self.isKeyPressed,self.tileGroup,self.board,
+                                    self.ghostGroup)
+        self.Player2.update(self.isKeyPressed,self.tileGroup,self.board,
+                                    self.ghostGroup)
+        # check eaten pacdots
+        eatenPacdot1=pygame.sprite.spritecollide(self.Player1,
+                                                self.pacdotGroup,True)
+        eatenPacdot2=pygame.sprite.spritecollide(self.Player2,
+                                                self.pacdotGroup,True)
+        self.ghostGroup.update(self.Player1,self.board)
+        # check for win
+        if self.checkForMultiWin():
+            self.wonMultiGame()
+        # check for loss
+        collideGhost1=pygame.sprite.spritecollide(self.Player1,
+                                                 self.ghostGroup,False)
+        collideGhost2=pygame.sprite.spritecollide(self.Player2,
+                                                 self.ghostGroup,False)
+        self.ghostCollide(collideGhost1,1)
+        self.ghostCollide(collideGhost2,2)
+        
+    def wonGame(self):
+        self.gameOn=False
+        self.mode='chooseMap'
+        if self.ghostMode=='easy':
+            Game.unlockedMode.add('hard')
+        elif self.ghostMode=='hard':
+            Game.unlockedMode.add('challenge')
+
+    def timerFired(self, dt):
+        if self.mode=='play':
+            if self.gameOn==True:
+                self.playGame()
+        elif self.mode=='multiPlayer':
+            if self.gameOn==True:
+                self.playMultiGame()
+    
+    def redrawAll(self, screen):
+        if self.mode=='play':
+            self.redrawGame(screen)
+        elif self.mode=='menu':
+            self.redrawMenu(screen)
+        elif self.mode=='chooseMode':
+            self.redrawChooseMode(screen)
+        elif self.mode=='chooseMap':
+            self.redrawChooseMap(screen)
+        elif self.mode=='help':
+            self.redrawHelp(screen)
+        elif self.mode=='designMap':
+            self.redrawDesignMap(screen)
+        elif self.mode=='showHowToPlay':
+            self.redrawHowToPlay(screen)
+        elif self.mode=='multiPlayer':
+            self.redrawMultiGame(screen)
+        elif self.mode=='multiPlayerWon':
+            self.redrawMultiGameWon(screen)
+
+    def redrawMultiGameWon(self,screen):
+        Player1Font=getFont(32,'Player1 scored %d'%self.Player1.score,(255,255,0))
+        Player2Font=getFont(32,'Player2 scored %d'%self.Player2.score,(255,255,0))
+        screen.blit(Player1Font,(150,150))
+        screen.blit(Player2Font,(150,250))
+        if self.winner=='tie':
+            tieFont=getFont(32,"It's a tie!",(255,255,0))
+            screen.blit(tieFont,(150,350))
+        else:
+            winnerFont=getFont(32,self.winner,(255,255,0))
+            screen.blit(winnerFont,(150,350))
+
+    def redrawMultiGame(self,screen):
+        if self.gameOn==True:
+            self.tileGroup.draw(screen)
+            self.pacdotGroup.draw(screen)
+            self.pacmanGroup.draw(screen)
+            self.ghostGroup.draw(screen)
+            Player1lives=getFont(16,'Player1: Lives=%d'%self.Player1.lives,(255,255,255))
+            screen.blit(Player1lives,(25,10))
+            Player1score=getFont(16,'Score:%d'%self.Player1.score,(255,255,255))
+            screen.blit(Player1score,(150,10))
+            Player2lives=getFont(16,'Player2: Lives=%d'%self.Player2.lives,(255,255,255))
+            screen.blit(Player2lives,(375,10))
+            Player2score=getFont(16,'Score:%d'%self.Player2.score,(255,255,255))
+            screen.blit(Player2score,(500,10))
+        else:
+            font=pygame.font.SysFont(None,60)
+            font=font.render('Game Over!', True, (255,255,0))
+            screen.blit(font,(190,300))
+            restart=getFont(32,'Press ESC to restart',(255,255,0))
+            screen.blit(restart,(150,350))
+        pygame.display.flip()
+
+    def redrawDesignMap(self,screen):
+        self.tileGroup.draw(screen)
+        drawButton=getButton((100,30),(0,0,0))
+        playButton=getButton((100,30),(0,0,0))
+        deleteButton=getButton((100,30),(0,0,0))
+        reflectButton=getButton((100,30),(0,0,0))
+        saveButton=getButton((80,30),(0,0,0))
+        drawFont=getFont(24,'Draw',(255,255,255))
+        playFont=getFont(24,'Play',(255,255,255))
+        deleteFont=getFont(24,'Erase',(255,255,255))
+        reflectFont=getFont(24,'Reflect',(255,255,255))
+        saveFont=getFont(24,'Save',(255,255,255))
+        screen.blit(drawButton,(20,10))
+        screen.blit(playButton,(140,10))
+        screen.blit(deleteButton,(260,10))
+        screen.blit(reflectButton,(380,10))
+        screen.blit(saveButton,(500,10))
+        screen.blit(drawFont,(20,10))
+        screen.blit(playFont,(140,10))
+        screen.blit(deleteFont,(260,10))
+        screen.blit(reflectFont,(380,10))
+        screen.blit(saveFont,(500,10))
+        if self.illegalMap==True:
+            illegalMapFont=getFont(48,'Illegal Map',(255,255,255))
+            screen.blit(illegalMapFont,(200,300))
+        pygame.display.flip()
+
+    def redrawChooseMap(self,screen):
+        blueMap=Game.blueMapImage
+        purpleMap=Game.purpleMapImage
+        cyanMap=Game.cyanMapImage
+        magentaMap=Game.magentaMapImage
+        screen.blit(blueMap,(50,25))
+        screen.blit(purpleMap,(350,25))
+        screen.blit(magentaMap,(50,375))
+        screen.blit(cyanMap,(350,375))
+        if 'hard' not in Game.unlockedMode:
+            screen.blit(Game.lockImage,(400,150))
+            screen.blit(Game.lockImage,(100,475))
+        if 'challenge' not in Game.unlockedMode:
+            screen.blit(Game.lockImage,(400,475))
+
+    def redrawChooseMode(self,screen):
+        if self.noFileSaved==True:
+            noFileSavedFont=getFont(32,'No Map Saved!',(255,255,0))
+            screen.blit(noFileSavedFont,(200,300))
+        else:
+            chooseMapButton=getButton((200,100),(0,0,0))
+            chooseMapFont=getFont(30,'Adventure',(255,255,255))
+            screen.blit(chooseMapButton,(50,250))
+            screen.blit(chooseMapFont,(70,280))
+            multiPlayerButton=getButton((200,100),(0,0,0))
+            multiPlayerFont=getFont(30,'Multi-Player',(255,255,255))
+            screen.blit(multiPlayerButton,(50,400))
+            screen.blit(multiPlayerFont,(70,430))
+            designMapButton=getButton((200,100),(0,0,0))
+            designMapFont=getFont(30,'Design',(255,255,255))
+            screen.blit(designMapButton,(350,250))
+            screen.blit(designMapFont,(375,280))
+            loadMapButton=getButton((200,100),(0,0,0))
+            loadMapFont=getFont(30,'Load Map',(255,255,255))
+            screen.blit(loadMapButton,(350,400))
+            screen.blit(loadMapFont,(370,430))
+        
+    def redrawMenu(self,screen):
+        playButton=getButton((200,80),(0,0,0))
+        playFont=getFont(42,'Play',(255,255,255))
+        screen.blit(playButton,(200,410))
+        screen.blit(playFont,(250,420))
+        helpButton=getButton((200,80),(0,0,0))
+        helpFont=getFont(42,'Help',(255,255,255))
+        screen.blit(helpButton,(200,510))
+        screen.blit(helpFont,(250,520))
+        quitButton=getButton((200,80),(0,0,0))
+        quitFont=getFont(42,'Quit',(255,255,255))
+        screen.blit(quitButton,(200,610))
+        screen.blit(quitFont,(250,620))
+        screen.blit(Game.menuTop,(125,125))
+        screen.blit(Game.menuBottom,(175,275))
+
+    def redrawGame(self,screen):
+        if self.pacman.lives!=0:
+            self.tileGroup.draw(screen)
+            if self.highlight==True:
+                self.blockGroup.draw(screen)
+                for block in self.blockGroup:
+                    num=block.num
+                    numFont=getFont(16,str(num),(0,0,0))
+                    (x,y)=(block.x,block.y)
+                    screen.blit(numFont,(x-5,y-5))
+            elif self.noHint==True:
+                noHintFont=getFont(32,'No hint Available!',(255,255,0))
+                screen.blit(noHintFont,(250,300))
+            self.pacdotGroup.draw(screen)
+            self.pacmanGroup.draw(screen)
+            self.ghostGroup.draw(screen)
+            lives=getFont(24,'Lives=%d'%self.pacman.lives,(255,255,255))
+            screen.blit(lives,(500,10))
+            score=getFont(24,'Score:%d'%self.pacman.score,(255,255,255))
+            screen.blit(score,(50,10))
+        if self.pacman.lives==0:
+            font=pygame.font.SysFont(None,60)
+            font=font.render('Game Over!', True, (255,255,0))
+            screen.blit(font,(190,300))
+            restart=getFont(32,'Press ESC to restart',(255,255,0))
+            screen.blit(restart,(150,350))
+        pygame.display.flip()
+
+    def redrawHelp(self,screen):
+        screen.blit(Game.helpLetterImage,(0,0))
+        howToPlayButton=getButton((150,45),(255,255,255))
+        screen.blit(howToPlayButton,(425,625))
+        howToPlayFont=getFont(24,'How To Play',(0,0,0))
+        screen.blit(howToPlayFont,(430,630))
+        pygame.display.flip()
+
+    def redrawHowToPlay(self,screen):
+        screen.blit(Game.howToPlayImage,(0,0))
+        pygame.display.flip()
+
+Game(600,700).run()
